@@ -16,30 +16,25 @@
     getFirestore, collection, addDoc, getDocs, doc,
     updateDoc, deleteDoc, orderBy, query, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import {
-    getStorage, ref, uploadBytes, getDownloadURL, deleteObject
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
   // ============================================================
-  // ⚠️ REPLACE THIS WITH YOUR FIREBASE PROJECT CONFIG
-  // Get it from: Firebase Console → Project Settings → General → Your apps → SDK setup
+  // FIREBASE PROJECT CONFIG
   // ============================================================
   const firebaseConfig = {
-  apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
-  authDomain: "pts-bscht.firebaseapp.com",
-  databaseURL: "https://pts-bscht-default-rtdb.firebaseio.com",
-  projectId: "pts-bscht",
-  storageBucket: "pts-bscht.firebasestorage.app",
-  messagingSenderId: "860500545291",
-  appId: "1:860500545291:web:60df69992bcaddcb0bdc0e",
-  measurementId: "G-B9NTEZYFMM"
-};
+    apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
+    authDomain: "pts-bscht.firebaseapp.com",
+    databaseURL: "https://pts-bscht-default-rtdb.firebaseio.com",
+    projectId: "pts-bscht",
+    storageBucket: "pts-bscht.firebasestorage.app",
+    messagingSenderId: "860500545291",
+    appId: "1:860500545291:web:60df69992bcaddcb0bdc0e",
+    measurementId: "G-B9NTEZYFMM"
+  };
 
   const app = initializeApp(firebaseConfig);
-  const db = getStorage ? getFirestore(app) : null;
-  const storage = getStorage(app);
+  const db = getFirestore(app);
 
-  window._firebase = { db, storage, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp, ref, uploadBytes, getDownloadURL, deleteObject };
+  window._firebase = { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp };
   window._firebaseReady = true;
   document.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -156,6 +151,7 @@ body{background:#FBF6EE;}
           <label class="block text-sm font-semibold mb-2">Product Image</label>
           <input type="file" id="p-image" accept="image/*"
             class="w-full border border-gold/40 rounded-lg p-3 outline-none">
+          <div id="upload-status" class="text-xs text-gray-500 mt-2 hidden"></div>
           <div id="image-preview" class="mt-3 hidden">
             <img id="preview-img" class="w-32 h-32 object-cover rounded-lg border border-gold/30">
           </div>
@@ -201,7 +197,7 @@ body{background:#FBF6EE;}
 <div id="confirm-modal" class="hidden fixed inset-0 z-[150] bg-black/50 flex items-center justify-center px-5">
   <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
     <h3 class="font-bold text-lg mb-2">Delete Product?</h3>
-    <p class="text-gray-600 text-sm mb-6">This will permanently remove the product and its image. This can't be undone.</p>
+    <p class="text-gray-600 text-sm mb-6">This will permanently remove the product listing. This can't be undone.</p>
     <div class="flex gap-3">
       <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700">Delete</button>
       <button onclick="closeConfirm()" class="flex-1 border border-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-100">Cancel</button>
@@ -214,6 +210,13 @@ body{background:#FBF6EE;}
 // ⚠️ SET YOUR ADMIN PASSWORD HERE
 // ============================================================
 const ADMIN_PASSWORD = "RebeccaAdmin2026";
+
+// ============================================================
+// ⚠️ CLOUDINARY CONFIG — replace UPLOAD PRESET with yours
+// ============================================================
+const CLOUDINARY_CLOUD_NAME = "xhkfiry2";
+const CLOUDINARY_UPLOAD_PRESET = "YOUR_UPLOAD_PRESET_HERE";
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 let editingId = null;
 let deleteTargetId = null;
@@ -277,8 +280,37 @@ function resetForm(){
   selectedImageFile = null;
   document.getElementById('product-form').reset();
   document.getElementById('image-preview').classList.add('hidden');
+  document.getElementById('upload-status').classList.add('hidden');
   document.getElementById('form-title').textContent = 'Add New Product';
   document.getElementById('save-btn-text').textContent = 'Save Product';
+}
+
+// ============================================================
+// UPLOAD IMAGE TO CLOUDINARY (unsigned upload from browser)
+// ============================================================
+async function uploadToCloudinary(file){
+  const statusEl = document.getElementById('upload-status');
+  statusEl.classList.remove('hidden');
+  statusEl.textContent = 'Uploading image to Cloudinary...';
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'products');
+
+  const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+    method: 'POST',
+    body: formData
+  });
+
+  if(!response.ok){
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || 'Cloudinary upload failed');
+  }
+
+  const data = await response.json();
+  statusEl.textContent = 'Image uploaded successfully.';
+  return data.secure_url;
 }
 
 async function saveProduct(){
@@ -300,15 +332,12 @@ async function saveProduct(){
   saveBtnText.innerHTML = '<span class="spinner" style="border-color:#fff3;border-top-color:#fff;"></span>';
 
   try {
-    const { db, storage, collection, addDoc, doc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL } = window._firebase;
+    const { db, collection, addDoc, doc, updateDoc, serverTimestamp } = window._firebase;
 
     let imageUrl = null;
 
     if(selectedImageFile){
-      const fileName = `products/${Date.now()}_${selectedImageFile.name}`;
-      const storageRef = ref(storage, fileName);
-      await uploadBytes(storageRef, selectedImageFile);
-      imageUrl = await getDownloadURL(storageRef);
+      imageUrl = await uploadToCloudinary(selectedImageFile);
     }
 
     const productData = {
@@ -386,7 +415,6 @@ async function loadProducts(){
           </div>
         </div>
       `;
-      card._data = p;
       listEl.appendChild(card);
     });
 
@@ -430,16 +458,9 @@ function closeConfirm(){
 
 async function confirmDelete(){
   if(!deleteTargetId) return;
-  const { db, storage, doc, deleteDoc, ref, deleteObject } = window._firebase;
+  const { db, doc, deleteDoc } = window._firebase;
   try {
-    const p = window._loadedProducts[deleteTargetId];
     await deleteDoc(doc(db, 'products', deleteTargetId));
-    if(p && p.imageUrl){
-      try {
-        const imageRef = ref(storage, p.imageUrl);
-        await deleteObject(imageRef);
-      } catch(e){ /* image may already be gone, ignore */ }
-    }
     showToast('Product deleted.');
     closeConfirm();
     loadProducts();
