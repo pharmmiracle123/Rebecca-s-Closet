@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Admin Login | Rebecca's Closet</title>
+<title>Admin Access | Rebecca's Closet</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
@@ -21,6 +21,7 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   onAuthStateChanged
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -177,6 +178,165 @@ window.loginAdmin = async function(){
 
 
 // ============================================================
+// SIGN UP (register new admin account)
+// ============================================================
+
+window.signupAdmin = async function(){
+
+  const email =
+    document.getElementById("signup-email").value.trim().toLowerCase();
+
+  const password =
+    document.getElementById("signup-password").value;
+
+  const confirmPassword =
+    document.getElementById("signup-confirm-password").value;
+
+  const error =
+    document.getElementById("signup-error");
+
+  const button =
+    document.getElementById("signup-btn");
+
+  error.classList.add("hidden");
+
+
+  // Check approved email
+
+  if(!ALLOWED_EMAILS.includes(email)){
+
+    error.textContent =
+      "This email is not authorized to register as an admin.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  if(!email || !password || !confirmPassword){
+
+    error.textContent =
+      "Please fill in all fields.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  if(password.length < 6){
+
+    error.textContent =
+      "Password must be at least 6 characters.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  if(password !== confirmPassword){
+
+    error.textContent =
+      "Passwords do not match.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  button.disabled = true;
+
+  button.innerHTML =
+    '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Creating account...';
+
+
+  try{
+
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    sessionStorage.setItem(
+      "admin_logged_in",
+      "true"
+    );
+
+    window.location.href = "admin.html";
+
+
+  }catch(err){
+
+    console.error(err);
+
+    let message =
+      "Unable to create account. Please try again.";
+
+    if(err.code === "auth/email-already-in-use"){
+      message =
+        "An account already exists for this email. Please login instead.";
+    }
+
+    if(err.code === "auth/weak-password"){
+      message =
+        "Password is too weak. Please choose a stronger one.";
+    }
+
+    if(err.code === "auth/invalid-email"){
+      message =
+        "Please enter a valid email address.";
+    }
+
+    error.textContent = message;
+
+    error.classList.remove("hidden");
+
+    button.disabled = false;
+
+    button.innerHTML =
+      '<i class="fa-solid fa-user-plus mr-2"></i> Create Account';
+
+  }
+
+};
+
+
+// ============================================================
+// TOGGLE BETWEEN LOGIN / SIGNUP
+// ============================================================
+
+window.showLogin = function(){
+
+  document.getElementById("login-panel").classList.remove("hidden");
+  document.getElementById("signup-panel").classList.add("hidden");
+
+  document.getElementById("tab-login").classList.add("text-burgundy","border-burgundy");
+  document.getElementById("tab-login").classList.remove("text-gray-400","border-transparent");
+
+  document.getElementById("tab-signup").classList.add("text-gray-400","border-transparent");
+  document.getElementById("tab-signup").classList.remove("text-burgundy","border-burgundy");
+
+};
+
+window.showSignup = function(){
+
+  document.getElementById("signup-panel").classList.remove("hidden");
+  document.getElementById("login-panel").classList.add("hidden");
+
+  document.getElementById("tab-signup").classList.add("text-burgundy","border-burgundy");
+  document.getElementById("tab-signup").classList.remove("text-gray-400","border-transparent");
+
+  document.getElementById("tab-login").classList.add("text-gray-400","border-transparent");
+  document.getElementById("tab-login").classList.remove("text-burgundy","border-burgundy");
+
+};
+
+
+// ============================================================
 // CHECK IF ALREADY LOGGED IN
 // ============================================================
 
@@ -269,7 +429,7 @@ body{
 <div class="w-full max-w-md">
 
 
-  <!-- LOGIN CARD -->
+  <!-- MAIN CARD -->
 
   <div class="bg-white rounded-2xl shadow-xl
               border border-gold/30 p-8">
@@ -277,7 +437,7 @@ body{
 
     <!-- Logo / Brand -->
 
-    <div class="text-center mb-8">
+    <div class="text-center mb-6">
 
       <div class="w-16 h-16 mx-auto mb-4
                   rounded-full bg-burgundy
@@ -308,137 +468,365 @@ body{
     </div>
 
 
-    <!-- EMAIL -->
+    <!-- TABS -->
 
-    <div class="mb-5">
+    <div class="flex border-b border-gold/30 mb-6">
 
-      <label
-        class="block text-sm font-semibold mb-2">
+      <button
+        id="tab-login"
+        onclick="showLogin()"
+        class="flex-1 py-3 text-sm font-semibold
+               border-b-2 text-burgundy border-burgundy
+               transition">
 
-        Email Address
+        Login
 
-      </label>
+      </button>
 
-      <div class="relative">
+      <button
+        id="tab-signup"
+        onclick="showSignup()"
+        class="flex-1 py-3 text-sm font-semibold
+               border-b-2 text-gray-400 border-transparent
+               transition">
 
-        <i class="fa-solid fa-envelope
-                  absolute left-4 top-1/2
-                  -translate-y-1/2
-                  text-gray-400"></i>
+        Sign Up
 
-        <input
+      </button>
 
-          type="email"
+    </div>
 
-          id="email"
 
-          placeholder="Enter admin email"
+    <!-- ============================================================ -->
+    <!-- LOGIN PANEL -->
+    <!-- ============================================================ -->
 
-          autocomplete="email"
+    <div id="login-panel">
 
-          class="w-full border
-                 border-gold/40
-                 rounded-lg
-                 p-4 pl-11
-                 outline-none
-                 focus:border-burgundy
-                 focus:ring-1
-                 focus:ring-burgundy"
+      <!-- EMAIL -->
 
-        >
+      <div class="mb-5">
+
+        <label
+          class="block text-sm font-semibold mb-2">
+
+          Email Address
+
+        </label>
+
+        <div class="relative">
+
+          <i class="fa-solid fa-envelope
+                    absolute left-4 top-1/2
+                    -translate-y-1/2
+                    text-gray-400"></i>
+
+          <input
+
+            type="email"
+
+            id="email"
+
+            placeholder="Enter admin email"
+
+            autocomplete="email"
+
+            class="w-full border
+                   border-gold/40
+                   rounded-lg
+                   p-4 pl-11
+                   outline-none
+                   focus:border-burgundy
+                   focus:ring-1
+                   focus:ring-burgundy"
+
+          >
+
+        </div>
 
       </div>
 
-    </div>
 
+      <!-- PASSWORD -->
 
-    <!-- PASSWORD -->
+      <div class="mb-6">
 
-    <div class="mb-6">
+        <label
+          class="block text-sm font-semibold mb-2">
 
-      <label
-        class="block text-sm font-semibold mb-2">
+          Password
 
-        Password
+        </label>
 
-      </label>
+        <div class="relative">
 
-      <div class="relative">
+          <i class="fa-solid fa-key
+                    absolute left-4 top-1/2
+                    -translate-y-1/2
+                    text-gray-400"></i>
 
-        <i class="fa-solid fa-key
-                  absolute left-4 top-1/2
-                  -translate-y-1/2
-                  text-gray-400"></i>
+          <input
 
-        <input
+            type="password"
 
-          type="password"
+            id="password"
 
-          id="password"
+            placeholder="Enter password"
 
-          placeholder="Enter password"
+            autocomplete="current-password"
 
-          autocomplete="current-password"
+            onkeydown="
+              if(event.key==='Enter')
+              loginAdmin()
+            "
 
-          onkeydown="
-            if(event.key==='Enter')
-            loginAdmin()
-          "
+            class="w-full border
+                   border-gold/40
+                   rounded-lg
+                   p-4 pl-11
+                   outline-none
+                   focus:border-burgundy
+                   focus:ring-1
+                   focus:ring-burgundy"
 
-          class="w-full border
-                 border-gold/40
-                 rounded-lg
-                 p-4 pl-11
-                 outline-none
-                 focus:border-burgundy
-                 focus:ring-1
-                 focus:ring-burgundy"
+          >
 
-        >
+        </div>
 
       </div>
 
+
+      <!-- ERROR -->
+
+      <div
+        id="error"
+        class="hidden bg-red-50
+               border border-red-200
+               text-red-600
+               text-sm rounded-lg
+               p-3 mb-5">
+
+      </div>
+
+
+      <!-- LOGIN BUTTON -->
+
+      <button
+
+        id="login-btn"
+
+        onclick="loginAdmin()"
+
+        class="w-full
+               bg-burgundy
+               hover:bg-black
+               text-white
+               py-4
+               rounded-lg
+               font-bold
+               transition
+               duration-300"
+
+      >
+
+        <i class="fa-solid fa-right-to-bracket mr-2"></i>
+
+        Login
+
+      </button>
+
     </div>
 
 
-    <!-- ERROR -->
+    <!-- ============================================================ -->
+    <!-- SIGNUP PANEL -->
+    <!-- ============================================================ -->
 
-    <div
-      id="error"
-      class="hidden bg-red-50
-             border border-red-200
-             text-red-600
-             text-sm rounded-lg
-             p-3 mb-5">
+    <div id="signup-panel" class="hidden">
+
+      <!-- EMAIL -->
+
+      <div class="mb-5">
+
+        <label
+          class="block text-sm font-semibold mb-2">
+
+          Email Address
+
+        </label>
+
+        <div class="relative">
+
+          <i class="fa-solid fa-envelope
+                    absolute left-4 top-1/2
+                    -translate-y-1/2
+                    text-gray-400"></i>
+
+          <input
+
+            type="email"
+
+            id="signup-email"
+
+            placeholder="Enter authorized admin email"
+
+            autocomplete="email"
+
+            class="w-full border
+                   border-gold/40
+                   rounded-lg
+                   p-4 pl-11
+                   outline-none
+                   focus:border-burgundy
+                   focus:ring-1
+                   focus:ring-burgundy"
+
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- PASSWORD -->
+
+      <div class="mb-5">
+
+        <label
+          class="block text-sm font-semibold mb-2">
+
+          Password
+
+        </label>
+
+        <div class="relative">
+
+          <i class="fa-solid fa-key
+                    absolute left-4 top-1/2
+                    -translate-y-1/2
+                    text-gray-400"></i>
+
+          <input
+
+            type="password"
+
+            id="signup-password"
+
+            placeholder="Create a password (min 6 chars)"
+
+            autocomplete="new-password"
+
+            class="w-full border
+                   border-gold/40
+                   rounded-lg
+                   p-4 pl-11
+                   outline-none
+                   focus:border-burgundy
+                   focus:ring-1
+                   focus:ring-burgundy"
+
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- CONFIRM PASSWORD -->
+
+      <div class="mb-6">
+
+        <label
+          class="block text-sm font-semibold mb-2">
+
+          Confirm Password
+
+        </label>
+
+        <div class="relative">
+
+          <i class="fa-solid fa-key
+                    absolute left-4 top-1/2
+                    -translate-y-1/2
+                    text-gray-400"></i>
+
+          <input
+
+            type="password"
+
+            id="signup-confirm-password"
+
+            placeholder="Re-enter password"
+
+            autocomplete="new-password"
+
+            onkeydown="
+              if(event.key==='Enter')
+              signupAdmin()
+            "
+
+            class="w-full border
+                   border-gold/40
+                   rounded-lg
+                   p-4 pl-11
+                   outline-none
+                   focus:border-burgundy
+                   focus:ring-1
+                   focus:ring-burgundy"
+
+          >
+
+        </div>
+
+      </div>
+
+
+      <!-- ERROR -->
+
+      <div
+        id="signup-error"
+        class="hidden bg-red-50
+               border border-red-200
+               text-red-600
+               text-sm rounded-lg
+               p-3 mb-5">
+
+      </div>
+
+
+      <!-- SIGNUP BUTTON -->
+
+      <button
+
+        id="signup-btn"
+
+        onclick="signupAdmin()"
+
+        class="w-full
+               bg-burgundy
+               hover:bg-black
+               text-white
+               py-4
+               rounded-lg
+               font-bold
+               transition
+               duration-300"
+
+      >
+
+        <i class="fa-solid fa-user-plus mr-2"></i>
+
+        Create Account
+
+      </button>
+
+      <p class="text-center text-xs text-gray-400 mt-4">
+
+        Only pre-approved emails can register.
+
+      </p>
 
     </div>
-
-
-    <!-- LOGIN BUTTON -->
-
-    <button
-
-      id="login-btn"
-
-      onclick="loginAdmin()"
-
-      class="w-full
-             bg-burgundy
-             hover:bg-black
-             text-white
-             py-4
-             rounded-lg
-             font-bold
-             transition
-             duration-300"
-
-    >
-
-      <i class="fa-solid fa-right-to-bracket mr-2"></i>
-
-      Login
-
-    </button>
 
 
     <!-- FOOTER -->
