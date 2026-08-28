@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebecca's Closet | Admin Panel</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, doc,
+    updateDoc, deleteDoc, orderBy, query, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import {
+    getStorage, ref, uploadBytes, getDownloadURL, deleteObject
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+  // ============================================================
+  // ⚠️ REPLACE THIS WITH YOUR FIREBASE PROJECT CONFIG
+  // Get it from: Firebase Console → Project Settings → General → Your apps → SDK setup
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getStorage ? getFirestore(app) : null;
+  const storage = getStorage(app);
+
+  window._firebase = { db, storage, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp, ref, uploadBytes, getDownloadURL, deleteObject };
+  window._firebaseReady = true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      colors:{ burgundy:"#6E1423", gold:"#C9A24B", cream:"#FBF6EE", charcoal:"#1E1B18" },
+      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'] }
+    }
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box;font-family:'Jost',sans-serif;}
+.serif{font-family:'Playfair Display',serif;}
+body{background:#FBF6EE;}
+.spinner{border:3px solid #f3f3f3;border-top:3px solid #6E1423;border-radius:50%;width:20px;height:20px;animation:spin 0.8s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+</style>
+</head>
+
+<body class="text-charcoal min-h-screen">
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="login-screen" class="min-h-screen flex items-center justify-center px-5">
+  <div class="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full border border-gold/30">
+    <h1 class="serif text-3xl font-bold text-center mb-1">Rebecca's Closet</h1>
+    <p class="text-center text-sm text-burgundy uppercase tracking-widest mb-8">Admin Access</p>
+    <input type="password" id="admin-password" placeholder="Enter admin password"
+      class="w-full border border-gold/40 rounded-lg p-4 mb-4 outline-none focus:border-burgundy"
+      onkeydown="if(event.key==='Enter') checkPassword()">
+    <button onclick="checkPassword()" class="w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition">
+      Log In
+    </button>
+    <p id="login-error" class="text-red-600 text-sm text-center mt-4 hidden">Incorrect password. Try again.</p>
+  </div>
+</div>
+
+<!-- ===================== ADMIN DASHBOARD ===================== -->
+<div id="admin-dashboard" class="hidden">
+
+  <!-- Header -->
+  <header class="bg-burgundy text-white sticky top-0 z-30 shadow">
+    <div class="max-w-6xl mx-auto px-5 py-4 flex justify-between items-center">
+      <div>
+        <h1 class="serif text-2xl font-bold">Rebecca's Closet</h1>
+        <p class="text-xs text-gold uppercase tracking-widest">Admin Dashboard</p>
+      </div>
+      <button onclick="logout()" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-sm font-semibold">
+        <i class="fa-solid fa-right-from-bracket mr-1"></i> Log Out
+      </button>
+    </div>
+  </header>
+
+  <div class="max-w-6xl mx-auto px-5 py-8">
+
+    <!-- Add / Edit Product Form -->
+    <div class="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gold/20">
+      <h2 id="form-title" class="serif text-2xl font-bold mb-6">Add New Product</h2>
+
+      <form id="product-form" class="grid md:grid-cols-2 gap-5" onsubmit="return false;">
+        <input type="hidden" id="product-id">
+
+        <div>
+          <label class="block text-sm font-semibold mb-2">Product Name</label>
+          <input type="text" id="p-name" placeholder="e.g. Luxury Leather Slides" required
+            class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-2">Category</label>
+          <select id="p-category" class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+            <option value="slides">Slides</option>
+            <option value="sandals">Sandals</option>
+            <option value="wedges">Wedges & Heels</option>
+            <option value="tops">Tops</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-2">Price (₦)</label>
+          <input type="number" id="p-price" placeholder="e.g. 18000" required
+            class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+        </div>
+
+        <div>
+          <label class="block text-sm font-semibold mb-2">Size / Variant</label>
+          <input type="text" id="p-size" placeholder="e.g. 37 to 42, or S to XL"
+            class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-2">Available Colours (optional)</label>
+          <input type="text" id="p-colors" placeholder="e.g. White, Red, Black, Cream"
+            class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-2">Badge (optional)</label>
+          <select id="p-badge" class="w-full border border-gold/40 rounded-lg p-3 outline-none focus:border-burgundy">
+            <option value="">None</option>
+            <option value="NEW ARRIVAL">New Arrival</option>
+            <option value="POPULAR">Popular</option>
+            <option value="BEST SELLER">Best Seller</option>
+            <option value="SOLD OUT">Sold Out</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-2">Product Image</label>
+          <input type="file" id="p-image" accept="image/*"
+            class="w-full border border-gold/40 rounded-lg p-3 outline-none">
+          <div id="image-preview" class="mt-3 hidden">
+            <img id="preview-img" class="w-32 h-32 object-cover rounded-lg border border-gold/30">
+          </div>
+        </div>
+
+        <div class="md:col-span-2 flex gap-3 mt-2">
+          <button onclick="saveProduct()" id="save-btn"
+            class="flex-1 bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition flex items-center justify-center gap-2">
+            <span id="save-btn-text">Save Product</span>
+          </button>
+          <button onclick="resetForm()" type="button"
+            class="px-6 py-4 border border-gold/40 rounded-lg font-semibold hover:bg-gold/10 transition">
+            Clear
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Product List -->
+    <div class="flex justify-between items-center mb-5">
+      <h2 class="serif text-2xl font-bold">Current Products</h2>
+      <span id="product-count" class="text-sm text-gray-500"></span>
+    </div>
+
+    <div id="loading-products" class="text-center py-10">
+      <div class="spinner mx-auto"></div>
+      <p class="text-gray-500 mt-3 text-sm">Loading products...</p>
+    </div>
+
+    <div id="products-list" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    <p id="no-products" class="hidden text-center text-gray-500 py-10">No products yet. Add your first one above.</p>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-auto z-[200] bg-charcoal text-white px-6 py-4 rounded-lg shadow-lg items-center gap-3">
+  <i id="toast-icon" class="fa-solid fa-circle-check text-green-400"></i>
+  <span id="toast-text"></span>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div id="confirm-modal" class="hidden fixed inset-0 z-[150] bg-black/50 flex items-center justify-center px-5">
+  <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+    <h3 class="font-bold text-lg mb-2">Delete Product?</h3>
+    <p class="text-gray-600 text-sm mb-6">This will permanently remove the product and its image. This can't be undone.</p>
+    <div class="flex gap-3">
+      <button onclick="confirmDelete()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700">Delete</button>
+      <button onclick="closeConfirm()" class="flex-1 border border-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-100">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// ⚠️ SET YOUR ADMIN PASSWORD HERE
+// ============================================================
+const ADMIN_PASSWORD = "RebeccaAdmin2026";
+
+let editingId = null;
+let deleteTargetId = null;
+let selectedImageFile = null;
+
+function checkPassword(){
+  const input = document.getElementById('admin-password').value;
+  if(input === ADMIN_PASSWORD){
+    sessionStorage.setItem('rc_admin_auth', 'true');
+    showDashboard();
+  } else {
+    document.getElementById('login-error').classList.remove('hidden');
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('rc_admin_auth');
+  document.getElementById('admin-dashboard').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('admin-password').value = '';
+}
+
+function showDashboard(){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('admin-dashboard').classList.remove('hidden');
+  loadProducts();
+}
+
+// Check session on load
+if(sessionStorage.getItem('rc_admin_auth') === 'true'){
+  document.addEventListener('DOMContentLoaded', showDashboard);
+}
+
+// Image preview
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('p-image').addEventListener('change', function(e){
+    const file = e.target.files[0];
+    if(file){
+      selectedImageFile = file;
+      const reader = new FileReader();
+      reader.onload = function(ev){
+        document.getElementById('preview-img').src = ev.target.result;
+        document.getElementById('image-preview').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+});
+
+function showToast(text, isError){
+  const toast = document.getElementById('toast');
+  const icon = document.getElementById('toast-icon');
+  document.getElementById('toast-text').textContent = text;
+  icon.className = isError ? 'fa-solid fa-circle-exclamation text-red-400' : 'fa-solid fa-circle-check text-green-400';
+  toast.classList.remove('hidden'); toast.classList.add('flex');
+  setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('flex'); }, 3000);
+}
+
+function resetForm(){
+  editingId = null;
+  selectedImageFile = null;
+  document.getElementById('product-form').reset();
+  document.getElementById('image-preview').classList.add('hidden');
+  document.getElementById('form-title').textContent = 'Add New Product';
+  document.getElementById('save-btn-text').textContent = 'Save Product';
+}
+
+async function saveProduct(){
+  const name = document.getElementById('p-name').value.trim();
+  const category = document.getElementById('p-category').value;
+  const price = Number(document.getElementById('p-price').value);
+  const size = document.getElementById('p-size').value.trim();
+  const colors = document.getElementById('p-colors').value.trim();
+  const badge = document.getElementById('p-badge').value;
+
+  if(!name || !price){
+    showToast('Please fill in product name and price.', true);
+    return;
+  }
+
+  const saveBtn = document.getElementById('save-btn');
+  const saveBtnText = document.getElementById('save-btn-text');
+  saveBtn.disabled = true;
+  saveBtnText.innerHTML = '<span class="spinner" style="border-color:#fff3;border-top-color:#fff;"></span>';
+
+  try {
+    const { db, storage, collection, addDoc, doc, updateDoc, serverTimestamp, ref, uploadBytes, getDownloadURL } = window._firebase;
+
+    let imageUrl = null;
+
+    if(selectedImageFile){
+      const fileName = `products/${Date.now()}_${selectedImageFile.name}`;
+      const storageRef = ref(storage, fileName);
+      await uploadBytes(storageRef, selectedImageFile);
+      imageUrl = await getDownloadURL(storageRef);
+    }
+
+    const productData = {
+      name, category, price, size, colors, badge,
+      updatedAt: serverTimestamp()
+    };
+    if(imageUrl) productData.imageUrl = imageUrl;
+
+    if(editingId){
+      await updateDoc(doc(db, 'products', editingId), productData);
+      showToast('Product updated successfully!');
+    } else {
+      productData.createdAt = serverTimestamp();
+      if(!imageUrl) productData.imageUrl = '';
+      await addDoc(collection(db, 'products'), productData);
+      showToast('Product added successfully!');
+    }
+
+    resetForm();
+    loadProducts();
+
+  } catch(err){
+    console.error(err);
+    showToast('Error saving product: ' + err.message, true);
+  } finally {
+    saveBtn.disabled = false;
+    saveBtnText.textContent = 'Save Product';
+  }
+}
+
+async function loadProducts(){
+  const { db, collection, getDocs, query, orderBy } = window._firebase;
+  const listEl = document.getElementById('products-list');
+  const loadingEl = document.getElementById('loading-products');
+  const noProductsEl = document.getElementById('no-products');
+
+  loadingEl.classList.remove('hidden');
+  listEl.innerHTML = '';
+
+  try {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+
+    loadingEl.classList.add('hidden');
+    document.getElementById('product-count').textContent = `${snapshot.size} product${snapshot.size !== 1 ? 's' : ''}`;
+
+    if(snapshot.empty){
+      noProductsEl.classList.remove('hidden');
+      return;
+    }
+    noProductsEl.classList.add('hidden');
+
+    snapshot.forEach(docSnap => {
+      const p = docSnap.data();
+      const id = docSnap.id;
+      const card = document.createElement('div');
+      card.className = 'bg-white rounded-xl shadow border border-gold/20 overflow-hidden';
+      card.innerHTML = `
+        <div class="h-40 bg-gold/10 flex items-center justify-center overflow-hidden">
+          ${p.imageUrl ? `<img src="${p.imageUrl}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-4xl text-gold/50"></i>`}
+        </div>
+        <div class="p-4">
+          ${p.badge ? `<span class="text-xs bg-burgundy text-white px-2 py-1 rounded-full">${p.badge}</span>` : ''}
+          <h3 class="font-bold mt-2">${p.name}</h3>
+          <p class="text-xs text-gray-500 mt-1">Size: ${p.size || '—'}</p>
+          ${p.colors ? `<p class="text-xs text-gray-500">Colours: ${p.colors}</p>` : ''}
+          <p class="text-burgundy font-bold text-lg mt-2">₦${Number(p.price).toLocaleString()}</p>
+          <div class="flex gap-2 mt-4">
+            <button onclick='editProduct("${id}")' class="flex-1 border border-burgundy text-burgundy py-2 rounded-lg text-sm hover:bg-burgundy hover:text-white">
+              <i class="fa-solid fa-pen mr-1"></i> Edit
+            </button>
+            <button onclick="openConfirm('${id}')" class="flex-1 border border-red-500 text-red-500 py-2 rounded-lg text-sm hover:bg-red-500 hover:text-white">
+              <i class="fa-solid fa-trash mr-1"></i> Delete
+            </button>
+          </div>
+        </div>
+      `;
+      card._data = p;
+      listEl.appendChild(card);
+    });
+
+    window._loadedProducts = {};
+    snapshot.forEach(docSnap => { window._loadedProducts[docSnap.id] = docSnap.data(); });
+
+  } catch(err){
+    console.error(err);
+    loadingEl.classList.add('hidden');
+    showToast('Error loading products: ' + err.message, true);
+  }
+}
+
+function editProduct(id){
+  const p = window._loadedProducts[id];
+  if(!p) return;
+  editingId = id;
+  document.getElementById('p-name').value = p.name || '';
+  document.getElementById('p-category').value = p.category || 'slides';
+  document.getElementById('p-price').value = p.price || '';
+  document.getElementById('p-size').value = p.size || '';
+  document.getElementById('p-colors').value = p.colors || '';
+  document.getElementById('p-badge').value = p.badge || '';
+  if(p.imageUrl){
+    document.getElementById('preview-img').src = p.imageUrl;
+    document.getElementById('image-preview').classList.remove('hidden');
+  }
+  document.getElementById('form-title').textContent = 'Edit Product';
+  document.getElementById('save-btn-text').textContent = 'Update Product';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function openConfirm(id){
+  deleteTargetId = id;
+  document.getElementById('confirm-modal').classList.remove('hidden');
+}
+function closeConfirm(){
+  deleteTargetId = null;
+  document.getElementById('confirm-modal').classList.add('hidden');
+}
+
+async function confirmDelete(){
+  if(!deleteTargetId) return;
+  const { db, storage, doc, deleteDoc, ref, deleteObject } = window._firebase;
+  try {
+    const p = window._loadedProducts[deleteTargetId];
+    await deleteDoc(doc(db, 'products', deleteTargetId));
+    if(p && p.imageUrl){
+      try {
+        const imageRef = ref(storage, p.imageUrl);
+        await deleteObject(imageRef);
+      } catch(e){ /* image may already be gone, ignore */ }
+    }
+    showToast('Product deleted.');
+    closeConfirm();
+    loadProducts();
+  } catch(err){
+    console.error(err);
+    showToast('Error deleting product: ' + err.message, true);
+    closeConfirm();
+  }
+}
+</script>
+
+</body>
+</html>
