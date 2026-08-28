@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Admin Login | Rebecca's Closet</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+
+// ============================================================
+// FIREBASE CONFIG
+// ============================================================
+
+const firebaseConfig = {
+
+  apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
+
+  authDomain: "pts-bscht.firebaseapp.com",
+
+  databaseURL:
+  "https://pts-bscht-default-rtdb.firebaseio.com",
+
+  projectId: "pts-bscht",
+
+  storageBucket:
+  "pts-bscht.firebasestorage.app",
+
+  messagingSenderId: "860500545291",
+
+  appId:
+  "1:860500545291:web:60df69992bcaddcb0bdc0e",
+
+  measurementId: "G-B9NTEZYFMM"
+};
+
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+
+// ============================================================
+// ONLY THESE EMAILS ARE ALLOWED
+// ============================================================
+
+const ALLOWED_EMAILS = [
+
+  "onyekamiracle08@gmail.com",
+
+  "stephenpayebourebecca@gmail.com"
+
+];
+
+
+// ============================================================
+// LOGIN
+// ============================================================
+
+window.loginAdmin = async function(){
+
+  const email =
+    document.getElementById("email").value.trim().toLowerCase();
+
+  const password =
+    document.getElementById("password").value;
+
+  const error =
+    document.getElementById("error");
+
+  const button =
+    document.getElementById("login-btn");
+
+  error.classList.add("hidden");
+
+
+  // Check approved email
+
+  if(!ALLOWED_EMAILS.includes(email)){
+
+    error.textContent =
+      "This email is not authorized to access the admin panel.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  if(!email || !password){
+
+    error.textContent =
+      "Please enter your email and password.";
+
+    error.classList.remove("hidden");
+
+    return;
+  }
+
+
+  button.disabled = true;
+
+  button.innerHTML =
+    '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Signing in...';
+
+
+  try{
+
+    await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+    // Successful login
+
+    sessionStorage.setItem(
+      "admin_logged_in",
+      "true"
+    );
+
+    window.location.href = "admin.html";
+
+
+  }catch(err){
+
+    console.error(err);
+
+    let message =
+      "Unable to login. Please check your email and password.";
+
+    if(err.code === "auth/invalid-credential"){
+      message =
+        "Incorrect email or password.";
+    }
+
+    if(err.code === "auth/user-not-found"){
+      message =
+        "No admin account exists for this email.";
+    }
+
+    if(err.code === "auth/too-many-requests"){
+      message =
+        "Too many attempts. Please try again later.";
+    }
+
+    error.textContent = message;
+
+    error.classList.remove("hidden");
+
+    button.disabled = false;
+
+    button.innerHTML =
+      '<i class="fa-solid fa-right-to-bracket mr-2"></i> Login';
+
+  }
+
+};
+
+
+// ============================================================
+// CHECK IF ALREADY LOGGED IN
+// ============================================================
+
+onAuthStateChanged(auth, (user) => {
+
+  if(user){
+
+    const email =
+      user.email?.toLowerCase();
+
+    if(ALLOWED_EMAILS.includes(email)){
+
+      window.location.href = "admin.html";
+
+    }
+
+  }
+
+});
+
+</script>
+
+
+<script>
+
+tailwind.config = {
+
+  theme: {
+
+    extend: {
+
+      colors: {
+
+        burgundy: "#6E1423",
+
+        gold: "#C9A24B",
+
+        cream: "#FBF6EE",
+
+        charcoal: "#1E1B18"
+
+      },
+
+      fontFamily: {
+
+        serif: [
+          '"Playfair Display"',
+          "serif"
+        ],
+
+        sans: [
+          "Jost",
+          "sans-serif"
+        ]
+
+      }
+
+    }
+
+  }
+
+};
+
+</script>
+
+
+<style>
+
+*{
+  box-sizing:border-box;
+  font-family:"Jost",sans-serif;
+}
+
+.serif{
+  font-family:"Playfair Display",serif;
+}
+
+body{
+  background:#FBF6EE;
+}
+
+</style>
+
+</head>
+
+
+<body class="min-h-screen flex items-center justify-center px-5">
+
+
+<div class="w-full max-w-md">
+
+
+  <!-- LOGIN CARD -->
+
+  <div class="bg-white rounded-2xl shadow-xl
+              border border-gold/30 p-8">
+
+
+    <!-- Logo / Brand -->
+
+    <div class="text-center mb-8">
+
+      <div class="w-16 h-16 mx-auto mb-4
+                  rounded-full bg-burgundy
+                  flex items-center justify-center
+                  text-white text-2xl">
+
+        <i class="fa-solid fa-lock"></i>
+
+      </div>
+
+
+      <h1 class="serif text-3xl
+                 font-bold text-charcoal">
+
+        Rebecca's Closet
+
+      </h1>
+
+
+      <p class="text-burgundy uppercase
+                tracking-[0.2em] text-xs
+                font-semibold mt-2">
+
+        Admin Access
+
+      </p>
+
+    </div>
+
+
+    <!-- EMAIL -->
+
+    <div class="mb-5">
+
+      <label
+        class="block text-sm font-semibold mb-2">
+
+        Email Address
+
+      </label>
+
+      <div class="relative">
+
+        <i class="fa-solid fa-envelope
+                  absolute left-4 top-1/2
+                  -translate-y-1/2
+                  text-gray-400"></i>
+
+        <input
+
+          type="email"
+
+          id="email"
+
+          placeholder="Enter admin email"
+
+          autocomplete="email"
+
+          class="w-full border
+                 border-gold/40
+                 rounded-lg
+                 p-4 pl-11
+                 outline-none
+                 focus:border-burgundy
+                 focus:ring-1
+                 focus:ring-burgundy"
+
+        >
+
+      </div>
+
+    </div>
+
+
+    <!-- PASSWORD -->
+
+    <div class="mb-6">
+
+      <label
+        class="block text-sm font-semibold mb-2">
+
+        Password
+
+      </label>
+
+      <div class="relative">
+
+        <i class="fa-solid fa-key
+                  absolute left-4 top-1/2
+                  -translate-y-1/2
+                  text-gray-400"></i>
+
+        <input
+
+          type="password"
+
+          id="password"
+
+          placeholder="Enter password"
+
+          autocomplete="current-password"
+
+          onkeydown="
+            if(event.key==='Enter')
+            loginAdmin()
+          "
+
+          class="w-full border
+                 border-gold/40
+                 rounded-lg
+                 p-4 pl-11
+                 outline-none
+                 focus:border-burgundy
+                 focus:ring-1
+                 focus:ring-burgundy"
+
+        >
+
+      </div>
+
+    </div>
+
+
+    <!-- ERROR -->
+
+    <div
+      id="error"
+      class="hidden bg-red-50
+             border border-red-200
+             text-red-600
+             text-sm rounded-lg
+             p-3 mb-5">
+
+    </div>
+
+
+    <!-- LOGIN BUTTON -->
+
+    <button
+
+      id="login-btn"
+
+      onclick="loginAdmin()"
+
+      class="w-full
+             bg-burgundy
+             hover:bg-black
+             text-white
+             py-4
+             rounded-lg
+             font-bold
+             transition
+             duration-300"
+
+    >
+
+      <i class="fa-solid fa-right-to-bracket mr-2"></i>
+
+      Login
+
+    </button>
+
+
+    <!-- FOOTER -->
+
+    <p class="text-center
+              text-xs
+              text-gray-400
+              mt-6">
+
+      Authorized administrators only.
+
+    </p>
+
+  </div>
+
+
+</div>
+
+</body>
+</html>
