@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rebecca's Closet | Classic and Timeless</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, onSnapshot, query, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ============================================================
+  // ⚠️ USE THE EXACT SAME CONFIG AS admin.html
+  // Get it from: Firebase Console → Project Settings → General → Your apps → SDK setup
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window._firebase = { db, collection, onSnapshot, query, orderBy };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      colors:{ burgundy:"#6E1423", gold:"#C9A24B", cream:"#FBF6EE", charcoal:"#1E1B18" },
+      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'] }
+    }
+  }
+}
+</script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Jost',sans-serif;scroll-behavior:smooth;}
+body{background:#FBF6EE;overflow-x:hidden;}
+.serif{font-family:'Playfair Display',serif;}
+.product{position:relative;transition:.3s;}
+.product:hover{transform:translateY(-8px);box-shadow:0 15px 35px rgba(110,20,35,.2);}
+.product .shine{position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);transition:left .6s ease;pointer-events:none;}
+.product:hover .shine{left:130%;}
+.menu:hover{color:#6E1423;}
+#cart-modal .cart-panel,#wishlist-modal .cart-panel{animation:slideIn .25s ease-out;}
+@keyframes slideIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
+.faq-answer{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.faq-item.open .faq-answer{max-height:300px;}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-icon{transition:transform .2s;}
+#mobile-menu{transition:max-height .3s ease;overflow:hidden;}
+#back-to-top{transition:opacity .3s, visibility .3s;}
+.shine-text{background:linear-gradient(90deg,#C9A24B 0%,#f4e4b8 50%,#C9A24B 100%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 3s linear infinite;}
+@keyframes shine{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.new-badge{animation:pulseBadge 1.5s ease-in-out infinite;}
+@keyframes pulseBadge{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+.notes-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
+.notes-bg i{position:absolute;color:rgba(255,255,255,.15);font-size:2rem;animation:floatUp linear infinite;}
+@keyframes floatUp{0%{transform:translateY(20px) rotate(0deg);opacity:0;}10%{opacity:1;}90%{opacity:1;}100%{transform:translateY(-400px) rotate(30deg);opacity:0;}}
+.wishlist-heart.active{color:#6E1423;}
+.spinner{border:3px solid #eee;border-top:3px solid #6E1423;border-radius:50%;width:28px;height:28px;animation:spin .8s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+.product-img-ph{background:linear-gradient(135deg, rgba(110,20,35,.08), rgba(201,162,75,.15));}
+</style>
+</head>
+
+<body class="text-charcoal">
+
+<!-- TOP BAR -->
+<div class="bg-burgundy text-cream text-sm">
+<div class="max-w-7xl mx-auto flex justify-between items-center px-5 py-2">
+<div class="flex gap-5">
+<p><i class="fa-solid fa-phone"></i> +234 915 531 1480</p>
+<p class="hidden sm:block"><i class="fa-solid fa-envelope"></i> rebeccascloset.ng@gmail.com</p>
+</div>
+<div class="hidden md:flex gap-6">
+<a href="#" class="hover:text-gold">Track Order</a>
+<a href="#" class="hover:text-gold">Customer Support</a>
+</div>
+</div>
+</div>
+
+<!-- NAVIGATION -->
+<header class="bg-cream shadow sticky top-0 z-50">
+<div class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
+<div>
+<h1 class="serif text-2xl md:text-3xl font-bold shine-text">Rebecca's Closet</h1>
+<p class="text-[10px] md:text-xs tracking-[0.3em] uppercase text-burgundy -mt-1">Classic &amp; Timeless</p>
+</div>
+
+<nav class="hidden lg:flex gap-8 font-medium">
+<a href="#home" class="menu">Home</a>
+<a href="#products" class="menu">Shop</a>
+<a href="#bestsellers" class="menu">Best Sellers</a>
+<a href="#faq" class="menu">FAQ</a>
+<a href="#about" class="menu">About</a>
+<a href="#contact" class="menu">Contact</a>
+</nav>
+
+<div class="flex items-center gap-5">
+<button class="relative" onclick="openWishlist()">
+<i class="fa-regular fa-heart text-2xl"></i>
+<span id="wishlist-count" class="absolute -top-2 -right-2 bg-burgundy text-white text-xs rounded-full w-5 h-5 flex justify-center items-center">0</span>
+</button>
+<button class="relative" onclick="openCart()">
+<i class="fa-solid fa-bag-shopping text-2xl"></i>
+<span id="cart-count" class="absolute -top-2 -right-2 bg-burgundy text-white text-xs rounded-full w-5 h-5 flex justify-center items-center">0</span>
+</button>
+<button class="lg:hidden" onclick="toggleMobileMenu()">
+<i class="fa-solid fa-bars text-2xl"></i>
+</button>
+</div>
+</div>
+
+<div id="mobile-menu" class="lg:hidden max-h-0 bg-cream border-t">
+<nav class="flex flex-col p-5 gap-4 font-medium">
+<a href="#home" class="menu" onclick="toggleMobileMenu()">Home</a>
+<a href="#products" class="menu" onclick="toggleMobileMenu()">Shop</a>
+<a href="#bestsellers" class="menu" onclick="toggleMobileMenu()">Best Sellers</a>
+<a href="#faq" class="menu" onclick="toggleMobileMenu()">FAQ</a>
+<a href="#about" class="menu" onclick="toggleMobileMenu()">About</a>
+<a href="#contact" class="menu" onclick="toggleMobileMenu()">Contact</a>
+</nav>
+</div>
+
+<div class="bg-gold/10 border-t">
+<div class="max-w-7xl mx-auto px-5 py-4">
+<div class="flex">
+<input type="search" id="search-input" oninput="filterProducts()" placeholder="Search slides, sandals, tops..." class="w-full rounded-l-lg border border-gold/40 p-4 outline-none bg-white">
+<button class="bg-burgundy text-white px-8 rounded-r-lg hover:bg-black">
+<i class="fa-solid fa-magnifying-glass"></i>
+</button>
+</div>
+</div>
+</div>
+</header>
+
+<!-- HERO -->
+<section id="home" class="bg-gold/10 py-8">
+<div class="max-w-7xl mx-auto px-5">
+<div class="grid lg:grid-cols-4 gap-6">
+
+<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gold/20">
+<div class="bg-burgundy text-white p-4">
+<h2 class="text-xl font-bold"><i class="fa-solid fa-list mr-2"></i>Categories</h2>
+</div>
+<ul class="divide-y divide-gold/10">
+<li class="p-4 hover:bg-gold/10 cursor-pointer" onclick="filterByCategory('slides')">👡 Slides</li>
+<li class="p-4 hover:bg-gold/10 cursor-pointer" onclick="filterByCategory('sandals')">🩴 Sandals</li>
+<li class="p-4 hover:bg-gold/10 cursor-pointer" onclick="filterByCategory('wedges')">👠 Wedges &amp; Heels</li>
+<li class="p-4 hover:bg-gold/10 cursor-pointer" onclick="filterByCategory('tops')">👚 Tops</li>
+<li class="p-4 hover:bg-gold/10 cursor-pointer" onclick="filterByCategory('all')">🛍 View All</li>
+</ul>
+</div>
+
+<div class="lg:col-span-2 relative bg-gradient-to-r from-burgundy to-[#8a1c30] rounded-xl overflow-hidden shadow-lg">
+<div class="notes-bg">
+<i class="fa-solid fa-gem" style="left:10%; animation-duration:6s;"></i>
+<i class="fa-solid fa-shoe-prints" style="left:35%; animation-duration:8s; animation-delay:1s;"></i>
+<i class="fa-solid fa-gem" style="left:60%; animation-duration:7s; animation-delay:2s;"></i>
+<i class="fa-solid fa-shoe-prints" style="left:80%; animation-duration:9s; animation-delay:.5s;"></i>
+</div>
+<div class="relative grid md:grid-cols-2 items-center z-10">
+<div class="p-10 text-white">
+<span class="bg-gold text-charcoal px-4 py-1 rounded-full text-sm font-semibold">NEW ARRIVALS</span>
+<h1 class="serif text-4xl md:text-5xl font-bold mt-6">Elegance That Never Fades</h1>
+<p class="mt-6 text-lg">Luxury leather slides, sandals, wedges and wardrobe staples — pieces made to be worn today and treasured for years.</p>
+<a href="#products" class="inline-block mt-8 bg-white text-burgundy px-8 py-4 rounded-lg font-bold hover:bg-gold hover:text-charcoal transition">Shop Now</a>
+</div>
+<div class="h-full flex items-center justify-center text-9xl">
+👜
+</div>
+</div>
+</div>
+
+<div class="space-y-6">
+<div class="bg-white rounded-xl shadow-lg p-6 border border-gold/20">
+<h3 class="text-xl font-bold text-burgundy">✨ Flash Sale</h3>
+<p class="text-gray-600 mt-3">Special prices on selected <span class="font-bold text-burgundy">leather pieces</span>.</p>
+<a href="#products" class="inline-block mt-4 text-burgundy font-semibold">Shop Deals →</a>
+</div>
+<div class="bg-charcoal text-white rounded-xl shadow-lg p-6">
+<h3 class="text-xl font-bold">🚚 Nationwide Delivery</h3>
+<p class="mt-3 text-gray-300">Fast, secure delivery to all 36 states in Nigeria.</p>
+</div>
+<div class="bg-gold rounded-xl shadow-lg p-6">
+<h3 class="text-xl font-bold text-charcoal">💳 Secure Payment</h3>
+<p class="mt-3 text-charcoal">Pay instantly with Card, Bank Transfer or USSD via Paystack.</p>
+</div>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- FEATURES -->
+<section class="py-10 bg-cream">
+<div class="max-w-7xl mx-auto px-5">
+<div class="grid md:grid-cols-4 gap-6">
+<div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
+<i class="fa-solid fa-truck text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Nationwide Delivery</h4><p class="text-sm text-gray-500">Anywhere in Nigeria</p></div>
+</div>
+<div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
+<i class="fa-solid fa-award text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Genuine Leather</h4><p class="text-sm text-gray-500">Premium quality, always</p></div>
+</div>
+<div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
+<i class="fa-solid fa-headset text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Fast Support</h4><p class="text-sm text-gray-500">WhatsApp assistance</p></div>
+</div>
+<div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
+<i class="fa-solid fa-credit-card text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Secure Payment</h4><p class="text-sm text-gray-500">Safe transactions</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- PRODUCTS (LIVE FROM FIRESTORE) -->
+<section id="products" class="py-12 bg-gold/5">
+<div class="max-w-7xl mx-auto px-5">
+
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<div>
+<h2 class="serif text-3xl font-bold">👜 Our Pieces</h2>
+<p class="text-gray-500">Classic footwear &amp; wardrobe staples</p>
+</div>
+<div class="flex items-center gap-3">
+<label class="text-sm text-gray-600 hidden sm:block">Sort by:</label>
+<select id="sort-select" onchange="sortProducts()" class="border border-gold/40 rounded-lg p-3 outline-none bg-white">
+<option value="default">Default</option>
+<option value="low-high">Price: Low to High</option>
+<option value="high-low">Price: High to Low</option>
+</select>
+</div>
+</div>
+
+<div id="loading-products" class="text-center py-16">
+<div class="spinner mx-auto"></div>
+<p class="text-gray-500 mt-4 text-sm">Loading products...</p>
+</div>
+
+<p id="no-results" class="hidden text-center text-gray-500 py-10">No products match your search.</p>
+<p id="no-products" class="hidden text-center text-gray-500 py-10">New pieces are on the way — check back soon!</p>
+
+<div id="product-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+</div>
+</section>
+
+<!-- BEST SELLERS -->
+<section id="bestsellers" class="py-16 bg-cream">
+<div class="max-w-7xl mx-auto px-5">
+<div class="mb-10">
+<h2 class="serif text-3xl font-bold">🔥 Best Sellers</h2>
+<p class="text-gray-500">Most requested this month</p>
+</div>
+<div id="bestsellers-grid" class="grid grid-cols-2 md:grid-cols-3 gap-6">
+<p class="col-span-full text-center text-gray-400 py-6 text-sm">Best sellers will appear here once products are added.</p>
+</div>
+</div>
+</section>
+
+<!-- WHY SHOP WITH US -->
+<section id="about" class="py-20 bg-gold/5">
+<div class="max-w-7xl mx-auto px-5">
+<div class="text-center mb-14">
+<h2 class="serif text-4xl font-bold">Why Shop With Rebecca's Closet?</h2>
+<p class="text-gray-600 mt-4">Classic pieces, timeless style, trusted nationwide.</p>
+</div>
+<div class="grid md:grid-cols-4 gap-8">
+<div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
+<div class="text-6xl text-burgundy mb-5">👜</div>
+<h3 class="font-bold text-xl">Genuine Leather</h3>
+<p class="text-gray-600 mt-3">Quality materials, no fakes.</p>
+</div>
+<div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
+<div class="text-6xl text-burgundy mb-5">🚚</div>
+<h3 class="font-bold text-xl">Nationwide Delivery</h3>
+<p class="text-gray-600 mt-3">Delivered safely to every state.</p>
+</div>
+<div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
+<div class="text-6xl text-burgundy mb-5">💳</div>
+<h3 class="font-bold text-xl">Secure Payments</h3>
+<p class="text-gray-600 mt-3">Card, Bank Transfer or USSD via Paystack.</p>
+</div>
+<div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
+<div class="text-6xl text-burgundy mb-5">💬</div>
+<h3 class="font-bold text-xl">Personal Service</h3>
+<p class="text-gray-600 mt-3">Direct WhatsApp support for every order.</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="py-20 bg-cream">
+<div class="max-w-7xl mx-auto px-5">
+<div class="text-center mb-14">
+<h2 class="serif text-4xl font-bold">What Our Customers Say</h2>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="bg-white rounded-xl p-8 shadow border border-gold/20">
+<div class="text-gold mb-4">★★★★★</div>
+<p class="text-gray-600">"The leather slides are so soft and true to size. Rebecca's Closet never disappoints."</p>
+<p class="font-bold mt-5">— Happy Customer, Lagos</p>
+</div>
+<div class="bg-white rounded-xl p-8 shadow border border-gold/20">
+<div class="text-gold mb-4">★★★★★</div>
+<p class="text-gray-600">"Fast WhatsApp response and the wedges arrived exactly as pictured."</p>
+<p class="font-bold mt-5">— Happy Customer, Abuja</p>
+</div>
+<div class="bg-white rounded-xl p-8 shadow border border-gold/20">
+<div class="text-gold mb-4">★★★★★</div>
+<p class="text-gray-600">"Quality tops at a fair price. My go-to for classic wardrobe pieces."</p>
+<p class="font-bold mt-5">— Happy Customer, Port Harcourt</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section id="faq" class="py-20 bg-gold/5">
+<div class="max-w-4xl mx-auto px-5">
+<div class="text-center mb-12">
+<h2 class="serif text-4xl font-bold">Frequently Asked Questions</h2>
+</div>
+<div class="space-y-4">
+
+<div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
+<button class="w-full flex justify-between items-center p-5 text-left font-semibold" onclick="toggleFaq(this)">
+Are your products genuine leather?
+<i class="fa-solid fa-plus faq-icon"></i>
+</button>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, all our slides, sandals and wedges are made from genuine quality leather.</p></div>
+</div>
+
+<div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
+<button class="w-full flex justify-between items-center p-5 text-left font-semibold" onclick="toggleFaq(this)">
+Do you deliver nationwide?
+<i class="fa-solid fa-plus faq-icon"></i>
+</button>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, we deliver to all 36 states in Nigeria with secure packaging.</p></div>
+</div>
+
+<div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
+<button class="w-full flex justify-between items-center p-5 text-left font-semibold" onclick="toggleFaq(this)">
+What payment methods do you accept?
+<i class="fa-solid fa-plus faq-icon"></i>
+</button>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">We accept secure online payments via Paystack (Card, Bank Transfer, USSD) as well as orders confirmed via WhatsApp.</p></div>
+</div>
+
+<div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
+<button class="w-full flex justify-between items-center p-5 text-left font-semibold" onclick="toggleFaq(this)">
+Can I confirm my size before ordering?
+<i class="fa-solid fa-plus faq-icon"></i>
+</button>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, please message us on WhatsApp to confirm sizing and stock availability before ordering.</p></div>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- PROMO BANNER -->
+<section class="py-20 bg-gradient-to-r from-burgundy to-[#8a1c30]">
+<div class="max-w-6xl mx-auto px-5 text-center text-white">
+<h2 class="serif text-5xl font-bold">Style Starts Here 👜👠</h2>
+<p class="mt-6 text-xl">Refresh your wardrobe with classic, timeless pieces.</p>
+<a href="#products" class="inline-block mt-8 bg-white text-burgundy px-10 py-4 rounded-full font-bold hover:bg-gold hover:text-charcoal transition">Start Shopping</a>
+</div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="py-20 bg-cream">
+<div class="max-w-7xl mx-auto px-5">
+<div class="text-center mb-12">
+<h2 class="serif text-4xl font-bold">Contact Rebecca's Closet</h2>
+<p class="text-gray-600 mt-3">We're always available to help you find your next timeless piece.</p>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-10">
+
+<div class="bg-white rounded-xl shadow-lg p-8 border border-gold/20">
+<h3 class="text-2xl font-bold mb-6">Business Information</h3>
+<div class="space-y-5">
+<div class="flex items-start gap-4">
+<i class="fas fa-store text-burgundy text-xl mt-1"></i>
+<div><h4 class="font-semibold">Brand</h4><p>Rebecca's Closet — Classic and Timeless</p></div>
+</div>
+<div class="flex items-start gap-4">
+<i class="fas fa-phone text-burgundy text-xl mt-1"></i>
+<div><h4 class="font-semibold">Phone</h4><p>+234 915 531 1480</p></div>
+</div>
+<div class="flex items-start gap-4">
+<i class="fab fa-whatsapp text-green-600 text-xl mt-1"></i>
+<div><h4 class="font-semibold">WhatsApp</h4><p>+234 915 531 1480</p></div>
+</div>
+<div class="flex items-start gap-4">
+<i class="fas fa-globe-africa text-burgundy text-xl mt-1"></i>
+<div><h4 class="font-semibold">Country</h4><p>Nigeria</p></div>
+</div>
+</div>
+
+<hr class="my-8 border-gold/20">
+
+<h3 class="text-xl font-bold mb-5">Accepted Payment Methods</h3>
+<div class="grid grid-cols-3 gap-4">
+<div class="border border-gold/30 rounded-lg p-4 text-center">
+<i class="fas fa-credit-card text-3xl text-burgundy"></i>
+<p class="mt-2 text-sm">Card / Paystack</p>
+</div>
+<div class="border border-gold/30 rounded-lg p-4 text-center">
+<i class="fas fa-university text-3xl text-burgundy"></i>
+<p class="mt-2 text-sm">Bank Transfer</p>
+</div>
+<div class="border border-gold/30 rounded-lg p-4 text-center">
+<i class="fab fa-whatsapp text-3xl text-green-600"></i>
+<p class="mt-2 text-sm">WhatsApp Order</p>
+</div>
+</div>
+
+<div class="bg-burgundy text-white rounded-xl p-6 mt-8">
+<h4 class="font-bold text-xl mb-3"><i class="fa-solid fa-lock mr-2"></i>Secure Online Payment</h4>
+<p>Pay instantly and securely with Card, Bank Transfer or USSD — powered by Paystack.</p>
+</div>
+</div>
+
+<div class="bg-white rounded-xl shadow-lg p-8 border border-gold/20">
+<h3 class="text-2xl font-bold mb-6">Send Us A Message</h3>
+<form class="space-y-5" onsubmit="return false;">
+<input type="text" placeholder="Full Name" class="w-full border border-gold/30 rounded-lg p-4">
+<input type="email" placeholder="Email Address" class="w-full border border-gold/30 rounded-lg p-4">
+<input type="tel" placeholder="Phone Number" class="w-full border border-gold/30 rounded-lg p-4">
+<select id="contact-product-select" class="w-full border border-gold/30 rounded-lg p-4">
+<option>Select Product</option>
+</select>
+<textarea rows="6" placeholder="Type your message..." class="w-full border border-gold/30 rounded-lg p-4"></textarea>
+<button class="w-full bg-burgundy text-white py-4 rounded-lg hover:bg-black">Send Message</button>
+</form>
+</div>
+
+</div>
+</div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="py-16 bg-burgundy">
+<div class="max-w-5xl mx-auto text-center px-5">
+<h2 class="serif text-4xl font-bold text-white">Join The Closet List</h2>
+<p class="text-cream/80 mt-4">Get first access to new arrivals and exclusive discounts.</p>
+<div class="flex flex-col md:flex-row mt-8 gap-4">
+<input type="email" placeholder="Enter your email address" class="flex-1 rounded-lg p-4">
+<button class="bg-gold text-charcoal font-bold px-8 rounded-lg py-4 md:py-0">Subscribe</button>
+</div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-charcoal text-white">
+<div class="max-w-7xl mx-auto px-5 py-16">
+<div class="grid md:grid-cols-4 gap-10">
+<div>
+<h3 class="serif text-2xl font-bold shine-text">Rebecca's Closet</h3>
+<p class="mt-4 text-gray-400">Classic and Timeless — quality leather footwear and wardrobe staples.</p>
+</div>
+<div>
+<h4 class="font-bold text-lg mb-4">Quick Links</h4>
+<ul class="space-y-2 text-gray-300">
+<li><a href="#home">Home</a></li>
+<li><a href="#products">Shop</a></li>
+<li><a href="#bestsellers">Best Sellers</a></li>
+<li><a href="#about">About</a></li>
+<li><a href="#contact">Contact</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-lg mb-4">Customer Care</h4>
+<ul class="space-y-2 text-gray-300">
+<li>FAQs</li>
+<li>Privacy Policy</li>
+<li>Refund Policy</li>
+<li>Shipping Policy</li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-lg mb-4">Follow Us</h4>
+<div class="flex gap-4 text-2xl">
+<a href="https://wa.me/2349155311480"><i class="fab fa-whatsapp text-green-500"></i></a>
+<a href="#"><i class="fab fa-instagram text-pink-400"></i></a>
+<a href="#"><i class="fab fa-tiktok"></i></a>
+</div>
+</div>
+</div>
+<hr class="border-gray-700 my-10">
+<div class="text-center text-gray-400">
+<p>© 2026 Rebecca's Closet. All Rights Reserved.</p>
+<p class="mt-2">Website Developer by Miracle | +234 915 531 1480</p>
+</div>
+</div>
+</footer>
+
+<!-- FLOATING WHATSAPP -->
+<a href="https://wa.me/2349155311480" target="_blank"
+class="fixed bottom-6 right-6 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition z-40">
+<i class="fab fa-whatsapp text-white text-4xl"></i>
+</a>
+
+<!-- BACK TO TOP -->
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+class="fixed bottom-6 left-6 w-12 h-12 bg-burgundy text-white rounded-full shadow-2xl opacity-0 invisible flex items-center justify-center z-40">
+<i class="fa-solid fa-arrow-up"></i>
+</button>
+
+<!-- CART MODAL -->
+<div id="cart-modal" class="hidden fixed inset-0 z-[100] bg-black/50 flex justify-end">
+<div class="cart-panel bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+<div class="flex items-center justify-between p-5 border-b bg-burgundy text-white">
+<h3 class="text-xl font-bold"><i class="fa-solid fa-bag-shopping mr-2"></i>Your Cart</h3>
+<button onclick="closeCart()" class="text-3xl leading-none hover:text-gold">&times;</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5" id="cart-items"></div>
+<p id="cart-empty" class="text-center text-gray-500 p-10">Your cart is empty.</p>
+<div id="cart-footer" class="border-t p-5 hidden">
+<div class="flex gap-2 mb-4">
+<input type="text" id="coupon-input" placeholder="Coupon code" class="flex-1 border rounded-lg p-3 text-sm">
+<button onclick="applyCoupon()" class="bg-gold text-charcoal px-4 rounded-lg text-sm font-bold">Apply</button>
+</div>
+<p id="coupon-msg" class="text-sm mb-2 hidden"></p>
+<div class="flex justify-between text-sm text-gray-500 mb-1"><span>Subtotal:</span><span id="cart-subtotal">₦0</span></div>
+<div class="flex justify-between text-sm text-green-600 mb-1 hidden" id="discount-row"><span>Discount:</span><span id="cart-discount">-₦0</span></div>
+<div class="flex justify-between text-xl font-bold mb-4"><span>Total:</span><span id="cart-total">₦0</span></div>
+<input type="email" id="checkout-email" placeholder="Enter your email for receipt" class="w-full border rounded-lg p-3 mb-3" required>
+<button onclick="payWithPaystack()" class="w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black flex items-center justify-center gap-2">
+<i class="fa-solid fa-lock"></i> Pay Now with Paystack
+</button>
+<button onclick="checkoutWhatsApp()" class="w-full mt-3 bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 flex items-center justify-center gap-2">
+<i class="fa-brands fa-whatsapp text-xl"></i> Or Order via WhatsApp
+</button>
+<button onclick="closeCart()" class="w-full mt-3 border border-gray-300 py-3 rounded-lg hover:bg-gray-100">Continue Shopping</button>
+</div>
+</div>
+</div>
+
+<!-- WISHLIST MODAL -->
+<div id="wishlist-modal" class="hidden fixed inset-0 z-[100] bg-black/50 flex justify-end">
+<div class="cart-panel bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+<div class="flex items-center justify-between p-5 border-b bg-burgundy text-white">
+<h3 class="text-xl font-bold"><i class="fa-solid fa-heart mr-2"></i>Your Wishlist</h3>
+<button onclick="closeWishlist()" class="text-3xl leading-none hover:text-gold">&times;</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5" id="wishlist-items"></div>
+<p id="wishlist-empty" class="text-center text-gray-500 p-10">Your wishlist is empty.</p>
+</div>
+</div>
+
+<!-- QUICK VIEW MODAL -->
+<div id="quickview-modal" class="hidden fixed inset-0 z-[110] bg-black/60 flex items-center justify-center p-5">
+<div class="bg-white rounded-2xl max-w-md w-full overflow-hidden relative">
+<button onclick="closeQuickView()" class="absolute top-3 right-3 text-2xl z-10">&times;</button>
+<div id="quickview-content" class="p-6"></div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-6 left-6 z-[100] bg-charcoal text-white px-6 py-3 rounded-lg shadow-lg items-center gap-2">
+<i class="fa-solid fa-circle-check text-green-400"></i>
+<span id="toast-text"></span>
+</div>
+
+<script>
+const PAYSTACK_PUBLIC_KEY = 'pk_live_XXXXXXXXXXXX'; // ⚠️ REPLACE with Rebecca's Closet's real Paystack public key
+const WHATSAPP_NUMBER = '2349155311480';
+const COUPONS = { 'TIMELESS10': 0.10, 'CLOSET5': 0.05 };
+
+let cart = JSON.parse(localStorage.getItem('rc_cart') || '[]');
+let wishlist = JSON.parse(localStorage.getItem('rc_wishlist') || '[]');
+let appliedDiscount = 0;
+
+// Live product store, populated from Firestore
+let liveProducts = {};       // id -> product data
+let productOrder = [];       // array of ids, in load order
+
+function formatNaira(num){ return '₦' + Number(num).toLocaleString('en-NG'); }
+
+// ============================================================
+// FIRESTORE LIVE LISTENER
+// ============================================================
+window.addEventListener('firebase-ready', () => {
+  const { db, collection, onSnapshot, query, orderBy } = window._firebase;
+  const loadingEl = document.getElementById('loading-products');
+  const noProductsEl = document.getElementById('no-products');
+
+  try {
+    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      loadingEl.classList.add('hidden');
+      liveProducts = {};
+      productOrder = [];
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        liveProducts[docSnap.id] = data;
+        productOrder.push(docSnap.id);
+      });
+
+      if(productOrder.length === 0){
+        noProductsEl.classList.remove('hidden');
+      } else {
+        noProductsEl.classList.add('hidden');
+      }
+
+      renderProductGrid();
+      renderBestSellers();
+      renderContactProductOptions();
+      syncHearts();
+    }, (err) => {
+      console.error(err);
+      loadingEl.innerHTML = `<p class="text-red-500 text-sm">Could not load products. Check your Firebase config.</p>`;
+    });
+  } catch(err){
+    console.error(err);
+    loadingEl.innerHTML = `<p class="text-red-500 text-sm">Firebase not configured yet.</p>`;
+  }
+});
+
+function productImageHTML(p){
+  if(p.imageUrl){
+    return `<img src="${p.imageUrl}" class="w-full h-full object-cover">`;
+  }
+  return `<div class="w-full h-full flex items-center justify-center product-img-ph"><i class="fa-solid fa-image text-4xl text-burgundy/30"></i></div>`;
+}
+
+function badgeHTML(p){
+  if(!p.badge) return '';
+  const isNew = p.badge === 'NEW ARRIVAL';
+  const cls = p.badge === 'SOLD OUT' ? 'bg-gray-500' : (isNew ? 'bg-green-600 new-badge' : 'bg-burgundy');
+  return `<span class="${cls} absolute top-2 left-2 z-10 text-white text-xs px-2 py-1 rounded-lg">${p.badge}</span>`;
+}
+
+function renderProductGrid(){
+  const grid = document.getElementById('product-grid');
+  grid.innerHTML = '';
+
+  productOrder.forEach(id => {
+    const p = liveProducts[id];
+    const soldOut = p.badge === 'SOLD OUT';
+    const card = document.createElement('div');
+    card.className = 'product bg-white rounded-xl shadow overflow-hidden border border-gold/10';
+    card.dataset.id = id;
+    card.dataset.category = p.category || 'other';
+    card.dataset.name = p.name || '';
+    card.dataset.price = p.price || 0;
+    card.innerHTML = `
+      <div class="shine"></div>
+      ${badgeHTML(p)}
+      <button class="wishlist-heart absolute top-2 right-2 z-10 bg-white/90 w-9 h-9 rounded-full flex items-center justify-center" onclick="toggleWishlist(event,'${id}')"><i class="fa-regular fa-heart"></i></button>
+      <div class="h-44">${productImageHTML(p)}</div>
+      <div class="p-4">
+        <h3 class="font-semibold">${p.name}</h3>
+        <p class="text-xs text-gray-500 mt-1">${p.size ? 'Size: ' + p.size : ''}</p>
+        ${p.colors ? `<p class="text-xs text-gray-500">${p.colors}</p>` : ''}
+        <p class="text-burgundy font-bold text-xl mt-2">${formatNaira(p.price)}</p>
+        <div class="text-gold mt-2">★★★★★</div>
+        <div class="flex gap-2 mt-3">
+          <button onclick="quickView('${id}')" class="flex-1 border border-burgundy text-burgundy py-2 rounded-lg text-sm hover:bg-burgundy hover:text-white">Quick View</button>
+          <button ${soldOut ? 'disabled' : `onclick="addToCart(event)"`} class="flex-1 ${soldOut ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-burgundy text-white hover:bg-black'} py-2 rounded-lg text-sm">${soldOut ? 'Sold Out' : 'Add'}</button>
+        </div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  filterProducts();
+  sortProducts();
+}
+
+function renderBestSellers(){
+  const grid = document.getElementById('bestsellers-grid');
+  const bestIds = productOrder.filter(id => liveProducts[id].badge === 'BEST SELLER' || liveProducts[id].badge === 'POPULAR').slice(0, 3);
+  const fallbackIds = bestIds.length > 0 ? bestIds : productOrder.slice(0, 3);
+
+  if(fallbackIds.length === 0){
+    grid.innerHTML = `<p class="col-span-full text-center text-gray-400 py-6 text-sm">Best sellers will appear here once products are added.</p>`;
+    return;
+  }
+
+  grid.innerHTML = fallbackIds.map(id => {
+    const p = liveProducts[id];
+    return `
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gold/20">
+        <div class="h-48">${productImageHTML(p)}</div>
+        <div class="p-5">
+          ${p.badge ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">${p.badge}</span>` : ''}
+          <h3 class="font-bold mt-3">${p.name}</h3>
+          <p class="text-burgundy font-bold text-2xl mt-2">${formatNaira(p.price)}</p>
+          <div class="text-gold mt-2">★★★★★</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderContactProductOptions(){
+  const select = document.getElementById('contact-product-select');
+  select.innerHTML = '<option>Select Product</option>' + productOrder.map(id => `<option>${liveProducts[id].name}</option>`).join('');
+}
+
+// ============================================================
+// CART
+// ============================================================
+function updateCartCount(){
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
+  document.getElementById('cart-count').textContent = count;
+}
+function updateWishlistCount(){
+  document.getElementById('wishlist-count').textContent = wishlist.length;
+}
+function saveCart(){ localStorage.setItem('rc_cart', JSON.stringify(cart)); updateCartCount(); renderCart(); }
+function saveWishlist(){ localStorage.setItem('rc_wishlist', JSON.stringify(wishlist)); updateWishlistCount(); renderWishlist(); syncHearts(); }
+
+function addToCart(e){
+  const card = e.target.closest('.product');
+  const id = card.dataset.id;
+  const p = liveProducts[id];
+  if(!p) return;
+  const existing = cart.find(i => i.id === id);
+  if(existing){ existing.qty += 1; }
+  else { cart.push({ id, name: p.name, price: Number(p.price), imageUrl: p.imageUrl || '', qty: 1 }); }
+  saveCart();
+  showToast(p.name + ' added to cart');
+}
+function removeFromCart(id){ cart = cart.filter(i => i.id !== id); saveCart(); }
+function changeQty(id, delta){
+  const item = cart.find(i => i.id === id);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0){ removeFromCart(id); return; }
+  saveCart();
+}
+function cartSubtotal(){ return cart.reduce((sum, i) => sum + i.price * i.qty, 0); }
+function cartTotal(){ const sub = cartSubtotal(); return Math.round(sub - (sub * appliedDiscount)); }
+
+function applyCoupon(){
+  const code = document.getElementById('coupon-input').value.trim().toUpperCase();
+  const msg = document.getElementById('coupon-msg');
+  if(COUPONS[code]){
+    appliedDiscount = COUPONS[code];
+    msg.textContent = `Coupon applied: ${COUPONS[code]*100}% off!`;
+    msg.className = 'text-sm mb-2 text-green-600';
+    msg.classList.remove('hidden');
+  } else {
+    appliedDiscount = 0;
+    msg.textContent = 'Invalid coupon code.';
+    msg.className = 'text-sm mb-2 text-red-600';
+    msg.classList.remove('hidden');
+  }
+  renderCart();
+}
+
+function renderCart(){
+  const container = document.getElementById('cart-items');
+  const emptyMsg = document.getElementById('cart-empty');
+  const footer = document.getElementById('cart-footer');
+  container.innerHTML = '';
+  if(cart.length === 0){ emptyMsg.classList.remove('hidden'); footer.classList.add('hidden'); return; }
+  emptyMsg.classList.add('hidden'); footer.classList.remove('hidden');
+  cart.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-4 border-b py-4';
+    row.innerHTML = `
+      <div class="w-20 h-20 rounded-lg overflow-hidden bg-gold/10 flex items-center justify-center">
+        ${item.imageUrl ? `<img src="${item.imageUrl}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-2xl text-burgundy/30"></i>`}
+      </div>
+      <div class="flex-1">
+        <h4 class="font-semibold">${item.name}</h4>
+        <p class="text-burgundy font-bold">${formatNaira(item.price)}</p>
+        <div class="flex items-center gap-3 mt-2">
+          <button onclick="changeQty('${item.id}', -1)" class="w-8 h-8 border rounded-lg hover:bg-gray-100">−</button>
+          <span>${item.qty}</span>
+          <button onclick="changeQty('${item.id}', 1)" class="w-8 h-8 border rounded-lg hover:bg-gray-100">+</button>
+          <button onclick="removeFromCart('${item.id}')" class="ml-4 text-red-600 text-sm hover:underline"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+      <div class="font-bold whitespace-nowrap">${formatNaira(item.price * item.qty)}</div>
+    `;
+    container.appendChild(row);
+  });
+  const sub = cartSubtotal();
+  document.getElementById('cart-subtotal').textContent = formatNaira(sub);
+  if(appliedDiscount > 0){
+    document.getElementById('discount-row').classList.remove('hidden');
+    document.getElementById('cart-discount').textContent = '-' + formatNaira(sub * appliedDiscount);
+  } else {
+    document.getElementById('discount-row').classList.add('hidden');
+  }
+  document.getElementById('cart-total').textContent = formatNaira(cartTotal());
+}
+
+function openCart(){ renderCart(); document.getElementById('cart-modal').classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+function closeCart(){ document.getElementById('cart-modal').classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+
+// ============================================================
+// WISHLIST
+// ============================================================
+function toggleWishlist(e, id){
+  e.stopPropagation();
+  const idx = wishlist.indexOf(id);
+  if(idx === -1){ wishlist.push(id); showToast('Added to wishlist'); }
+  else { wishlist.splice(idx, 1); showToast('Removed from wishlist'); }
+  saveWishlist();
+}
+function syncHearts(){
+  document.querySelectorAll('.wishlist-heart').forEach(btn => {
+    const card = btn.closest('.product');
+    const id = card.dataset.id;
+    const icon = btn.querySelector('i');
+    if(wishlist.includes(id)){ btn.classList.add('active'); icon.classList.replace('fa-regular','fa-solid'); }
+    else { btn.classList.remove('active'); icon.classList.replace('fa-solid','fa-regular'); }
+  });
+}
+function renderWishlist(){
+  const container = document.getElementById('wishlist-items');
+  const emptyMsg = document.getElementById('wishlist-empty');
+  container.innerHTML = '';
+  const validWishlist = wishlist.filter(id => liveProducts[id]);
+  if(validWishlist.length === 0){ emptyMsg.classList.remove('hidden'); return; }
+  emptyMsg.classList.add('hidden');
+  validWishlist.forEach(id => {
+    const p = liveProducts[id];
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-4 border-b py-4';
+    row.innerHTML = `
+      <div class="w-16 h-16 rounded-lg overflow-hidden bg-gold/10 flex items-center justify-center">
+        ${p.imageUrl ? `<img src="${p.imageUrl}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-image text-xl text-burgundy/30"></i>`}
+      </div>
+      <div class="flex-1">
+        <h4 class="font-semibold">${p.name}</h4>
+        <p class="text-burgundy font-bold">${formatNaira(p.price)}</p>
+      </div>
+      <button onclick="moveWishlistToCart('${id}')" class="text-sm bg-burgundy text-white px-3 py-2 rounded-lg">Add to Cart</button>
+    `;
+    container.appendChild(row);
+  });
+}
+function moveWishlistToCart(id){
+  const p = liveProducts[id];
+  if(!p) return;
+  const existing = cart.find(i => i.id === id);
+  if(existing){ existing.qty += 1; } else { cart.push({ id, name:p.name, price:Number(p.price), imageUrl:p.imageUrl||'', qty:1 }); }
+  saveCart();
+  showToast(p.name + ' added to cart');
+}
+function openWishlist(){ renderWishlist(); document.getElementById('wishlist-modal').classList.remove('hidden'); document.body.classList.add('overflow-hidden'); }
+function closeWishlist(){ document.getElementById('wishlist-modal').classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
+
+// ============================================================
+// QUICK VIEW
+// ============================================================
+function quickView(id){
+  const p = liveProducts[id];
+  if(!p) return;
+  const soldOut = p.badge === 'SOLD OUT';
+  document.getElementById('quickview-content').innerHTML = `
+    <div class="h-56 rounded-xl mb-5 overflow-hidden">${productImageHTML(p)}</div>
+    <h3 class="serif text-2xl font-bold mb-2">${p.name}</h3>
+    <p class="text-sm text-gray-500 mb-1">${p.size ? 'Size: ' + p.size : ''}</p>
+    ${p.colors ? `<p class="text-sm text-gray-500 mb-2">Colours: ${p.colors}</p>` : ''}
+    <p class="text-burgundy font-bold text-2xl mb-4">${formatNaira(p.price)}</p>
+    <div class="text-gold mb-4">★★★★★</div>
+    <button ${soldOut ? 'disabled' : `onclick="addToCartFromQuickView('${id}')"`} class="w-full ${soldOut ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-burgundy text-white hover:bg-black'} py-3 rounded-lg font-bold">${soldOut ? 'Sold Out' : 'Add to Cart'}</button>
+  `;
+  document.getElementById('quickview-modal').classList.remove('hidden');
+}
+function addToCartFromQuickView(id){
+  const p = liveProducts[id];
+  if(!p) return;
+  const existing = cart.find(i => i.id === id);
+  if(existing){ existing.qty += 1; } else { cart.push({ id, name:p.name, price:Number(p.price), imageUrl:p.imageUrl||'', qty:1 }); }
+  saveCart();
+  closeQuickView();
+  showToast(p.name + ' added to cart');
+}
+function closeQuickView(){ document.getElementById('quickview-modal').classList.add('hidden'); }
+
+// ============================================================
+// PAYSTACK + WHATSAPP
+// ============================================================
+function payWithPaystack(){
+  if(cart.length === 0) return;
+  const emailInput = document.getElementById('checkout-email');
+  const email = emailInput.value.trim();
+  if(!email || !email.includes('@')){ showToast('Please enter a valid email to continue'); emailInput.focus(); return; }
+  const amountInKobo = cartTotal() * 100;
+  const ref = 'RC-' + Date.now();
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: email,
+    amount: amountInKobo,
+    currency: 'NGN',
+    ref: ref,
+    metadata: {
+      custom_fields: [{ display_name: "Order Items", variable_name: "order_items", value: cart.map(i => `${i.name} x${i.qty}`).join(', ') }]
+    },
+    callback: function(response){
+      // Client-side success only. For real fulfillment, verify this reference
+      // server-side (e.g. a Firebase Cloud Function calling Paystack's
+      // /transaction/verify endpoint) before treating the order as paid.
+      showToast('Payment successful! Ref: ' + response.reference);
+      cart = []; appliedDiscount = 0; saveCart(); closeCart();
+    },
+    onClose: function(){ showToast('Payment window closed'); }
+  });
+  handler.openIframe();
+}
+
+function checkoutWhatsApp(){
+  if(cart.length === 0) return;
+  let msg = "Hello Rebecca's Closet, I would like to order the following:\n\n";
+  cart.forEach((item, idx) => {
+    msg += `${idx + 1}. ${item.name}\n   Qty: ${item.qty} x ${formatNaira(item.price)} = ${formatNaira(item.price * item.qty)}\n\n`;
+  });
+  msg += `Total: ${formatNaira(cartTotal())}\n\nPlease confirm availability and delivery details. Thank you.`;
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function showToast(text){
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-text').textContent = text;
+  toast.classList.remove('hidden'); toast.classList.add('flex');
+  setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('flex'); }, 2000);
+}
+
+// ============================================================
+// UI HELPERS: mobile menu, search, filter, sort, FAQ, scroll
+// ============================================================
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobile-menu');
+  if(menu.style.maxHeight && menu.style.maxHeight !== '0px'){ menu.style.maxHeight = '0px'; }
+  else { menu.style.maxHeight = menu.scrollHeight + 'px'; }
+}
+
+function filterProducts(){
+  const query = document.getElementById('search-input').value.toLowerCase();
+  const products = document.querySelectorAll('#product-grid .product');
+  let visibleCount = 0;
+  products.forEach(p => {
+    const name = p.dataset.name.toLowerCase();
+    if(name.includes(query)){ p.classList.remove('hidden'); visibleCount++; }
+    else { p.classList.add('hidden'); }
+  });
+  const noResults = document.getElementById('no-results');
+  if(productOrder.length > 0){
+    noResults.classList.toggle('hidden', visibleCount !== 0);
+  } else {
+    noResults.classList.add('hidden');
+  }
+}
+
+function filterByCategory(category){
+  const products = document.querySelectorAll('#product-grid .product');
+  let visibleCount = 0;
+  products.forEach(p => {
+    if(category === 'all' || p.dataset.category === category){ p.classList.remove('hidden'); visibleCount++; }
+    else { p.classList.add('hidden'); }
+  });
+  if(productOrder.length > 0){
+    document.getElementById('no-results').classList.toggle('hidden', visibleCount !== 0);
+  }
+  document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+}
+
+function sortProducts(){
+  const sortValue = document.getElementById('sort-select').value;
+  const grid = document.getElementById('product-grid');
+  const products = Array.from(grid.querySelectorAll('.product'));
+  if(sortValue === 'low-high'){ products.sort((a, b) => Number(a.dataset.price) - Number(b.dataset.price)); }
+  else if(sortValue === 'high-low'){ products.sort((a, b) => Number(b.dataset.price) - Number(a.dataset.price)); }
+  products.forEach(p => grid.appendChild(p));
+}
+
+function toggleFaq(button){
+  const item = button.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if(!wasOpen){ item.classList.add('open'); }
+}
+
+window.addEventListener("scroll", function(){
+  const header = document.querySelector("header");
+  const backToTop = document.getElementById('back-to-top');
+  if(window.scrollY > 100){ header.classList.add("shadow-xl"); } else { header.classList.remove("shadow-xl"); }
+  if(window.scrollY > 400){ backToTop.classList.remove('opacity-0', 'invisible'); } else { backToTop.classList.add('opacity-0', 'invisible'); }
+});
+
+document.addEventListener('DOMContentLoaded', () => { updateCartCount(); updateWishlistCount(); });
+</script>
+
+</body>
+</html>
