@@ -16,13 +16,10 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, onSnapshot, query, orderBy
+    getFirestore, collection, onSnapshot, query, orderBy,
+    doc, setDoc, updateDoc, arrayUnion, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ============================================================
-  // ⚠️ USE THE EXACT SAME CONFIG AS admin.html
-  // Get it from: Firebase Console → Project Settings → General → Your apps → SDK setup
-  // ============================================================
   const firebaseConfig = {
   apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
   authDomain: "pts-bscht.firebaseapp.com",
@@ -36,7 +33,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  window._firebase = { db, collection, onSnapshot, query, orderBy };
+  window._firebase = { db, collection, onSnapshot, query, orderBy, doc, setDoc, updateDoc, arrayUnion, serverTimestamp };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
@@ -60,7 +57,7 @@ body{background:#FBF6EE;overflow-x:hidden;}
 .product .shine{position:absolute;top:0;left:-75%;width:50%;height:100%;background:linear-gradient(120deg,transparent,rgba(255,255,255,.5),transparent);transform:skewX(-20deg);transition:left .6s ease;pointer-events:none;}
 .product:hover .shine{left:130%;}
 .menu:hover{color:#6E1423;}
-#cart-modal .cart-panel,#wishlist-modal .cart-panel{animation:slideIn .25s ease-out;}
+#cart-modal .cart-panel,#wishlist-modal .cart-panel,#chat-modal .cart-panel{animation:slideIn .25s ease-out;}
 @keyframes slideIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
 .faq-answer{max-height:0;overflow:hidden;transition:max-height .3s ease;}
 .faq-item.open .faq-answer{max-height:300px;}
@@ -93,7 +90,7 @@ body{background:#FBF6EE;overflow-x:hidden;}
 </div>
 <div class="hidden md:flex gap-6">
 <a href="#" class="hover:text-gold">Track Order</a>
-<a href="#" class="hover:text-gold">Customer Support</a>
+<a href="#" onclick="openChat(); return false;" class="hover:text-gold">Customer Support</a>
 </div>
 </div>
 </div>
@@ -201,8 +198,8 @@ body{background:#FBF6EE;overflow-x:hidden;}
 <a href="#products" class="inline-block mt-4 text-burgundy font-semibold">Shop Deals →</a>
 </div>
 <div class="bg-charcoal text-white rounded-xl shadow-lg p-6">
-<h3 class="text-xl font-bold">🚚 Nationwide Delivery</h3>
-<p class="mt-3 text-gray-300">Fast, secure delivery to all 36 states in Nigeria.</p>
+<h3 class="text-xl font-bold">🏪 Pickup or Delivery</h3>
+<p class="mt-3 text-gray-300">Collect in person, or call us to arrange delivery.</p>
 </div>
 <div class="bg-gold rounded-xl shadow-lg p-6">
 <h3 class="text-xl font-bold text-charcoal">💳 Secure Payment</h3>
@@ -219,16 +216,16 @@ body{background:#FBF6EE;overflow-x:hidden;}
 <div class="max-w-7xl mx-auto px-5">
 <div class="grid md:grid-cols-4 gap-6">
 <div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
-<i class="fa-solid fa-truck text-4xl text-burgundy"></i>
-<div><h4 class="font-bold">Nationwide Delivery</h4><p class="text-sm text-gray-500">Anywhere in Nigeria</p></div>
+<i class="fa-solid fa-store text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Easy Pickup</h4><p class="text-sm text-gray-500">Collect your order in person</p></div>
 </div>
 <div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
 <i class="fa-solid fa-award text-4xl text-burgundy"></i>
 <div><h4 class="font-bold">Genuine Leather</h4><p class="text-sm text-gray-500">Premium quality, always</p></div>
 </div>
 <div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
-<i class="fa-solid fa-headset text-4xl text-burgundy"></i>
-<div><h4 class="font-bold">Fast Support</h4><p class="text-sm text-gray-500">WhatsApp assistance</p></div>
+<i class="fa-solid fa-comment-dots text-4xl text-burgundy"></i>
+<div><h4 class="font-bold">Live Chat Support</h4><p class="text-sm text-gray-500">Chat with us right on the site</p></div>
 </div>
 <div class="flex items-center gap-4 bg-white p-5 rounded-xl shadow border border-gold/20">
 <i class="fa-solid fa-credit-card text-4xl text-burgundy"></i>
@@ -297,9 +294,9 @@ body{background:#FBF6EE;overflow-x:hidden;}
 <p class="text-gray-600 mt-3">Quality materials, no fakes.</p>
 </div>
 <div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
-<div class="text-6xl text-burgundy mb-5">🚚</div>
-<h3 class="font-bold text-xl">Nationwide Delivery</h3>
-<p class="text-gray-600 mt-3">Delivered safely to every state.</p>
+<div class="text-6xl text-burgundy mb-5">🏪</div>
+<h3 class="font-bold text-xl">Easy Pickup</h3>
+<p class="text-gray-600 mt-3">Collect your order at our location.</p>
 </div>
 <div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
 <div class="text-6xl text-burgundy mb-5">💳</div>
@@ -309,7 +306,7 @@ body{background:#FBF6EE;overflow-x:hidden;}
 <div class="text-center p-8 rounded-xl shadow-lg bg-white border border-gold/20">
 <div class="text-6xl text-burgundy mb-5">💬</div>
 <h3 class="font-bold text-xl">Personal Service</h3>
-<p class="text-gray-600 mt-3">Direct WhatsApp support for every order.</p>
+<p class="text-gray-600 mt-3">Direct live chat support for every order.</p>
 </div>
 </div>
 </div>
@@ -329,7 +326,7 @@ body{background:#FBF6EE;overflow-x:hidden;}
 </div>
 <div class="bg-white rounded-xl p-8 shadow border border-gold/20">
 <div class="text-gold mb-4">★★★★★</div>
-<p class="text-gray-600">"Fast WhatsApp response and the wedges arrived exactly as pictured."</p>
+<p class="text-gray-600">"Quick pickup and the wedges arrived exactly as pictured."</p>
 <p class="font-bold mt-5">— Happy Customer, Abuja</p>
 </div>
 <div class="bg-white rounded-xl p-8 shadow border border-gold/20">
@@ -359,10 +356,10 @@ Are your products genuine leather?
 
 <div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
 <button class="w-full flex justify-between items-center p-5 text-left font-semibold" onclick="toggleFaq(this)">
-Do you deliver nationwide?
+How do I get my order?
 <i class="fa-solid fa-plus faq-icon"></i>
 </button>
-<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, we deliver to all 36 states in Nigeria with secure packaging.</p></div>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">You can pick up your order in person at our location, or call us to arrange delivery.</p></div>
 </div>
 
 <div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
@@ -370,7 +367,7 @@ Do you deliver nationwide?
 What payment methods do you accept?
 <i class="fa-solid fa-plus faq-icon"></i>
 </button>
-<div class="faq-answer px-5"><p class="text-gray-600 pb-5">We accept secure online payments via Paystack (Card, Bank Transfer, USSD) as well as orders confirmed via WhatsApp.</p></div>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">We accept secure online payments via Paystack (Card, Bank Transfer, USSD).</p></div>
 </div>
 
 <div class="faq-item bg-white rounded-xl shadow overflow-hidden border border-gold/10">
@@ -378,7 +375,7 @@ What payment methods do you accept?
 Can I confirm my size before ordering?
 <i class="fa-solid fa-plus faq-icon"></i>
 </button>
-<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, please message us on WhatsApp to confirm sizing and stock availability before ordering.</p></div>
+<div class="faq-answer px-5"><p class="text-gray-600 pb-5">Yes, please use our live chat to confirm sizing and stock availability before ordering.</p></div>
 </div>
 
 </div>
@@ -416,8 +413,8 @@ Can I confirm my size before ordering?
 <div><h4 class="font-semibold">Phone</h4><p>+234 915 531 1480</p></div>
 </div>
 <div class="flex items-start gap-4">
-<i class="fab fa-whatsapp text-green-600 text-xl mt-1"></i>
-<div><h4 class="font-semibold">WhatsApp</h4><p>+234 915 531 1480</p></div>
+<i class="fa-solid fa-comment-dots text-burgundy text-xl mt-1"></i>
+<div><h4 class="font-semibold">Live Chat</h4><p><button onclick="openChat()" class="text-burgundy underline font-semibold">Start a chat with us</button></p></div>
 </div>
 <div class="flex items-start gap-4">
 <i class="fas fa-globe-africa text-burgundy text-xl mt-1"></i>
@@ -438,8 +435,8 @@ Can I confirm my size before ordering?
 <p class="mt-2 text-sm">Bank Transfer</p>
 </div>
 <div class="border border-gold/30 rounded-lg p-4 text-center">
-<i class="fab fa-whatsapp text-3xl text-green-600"></i>
-<p class="mt-2 text-sm">WhatsApp Order</p>
+<i class="fa-solid fa-store text-3xl text-burgundy"></i>
+<p class="mt-2 text-sm">Pickup / Call</p>
 </div>
 </div>
 
@@ -509,7 +506,7 @@ Can I confirm my size before ordering?
 <div>
 <h4 class="font-bold text-lg mb-4">Follow Us</h4>
 <div class="flex gap-4 text-2xl">
-<a href="https://wa.me/2349155311480"><i class="fab fa-whatsapp text-green-500"></i></a>
+<a href="tel:+2349155311480"><i class="fa-solid fa-phone text-gold"></i></a>
 <a href="#"><i class="fab fa-instagram text-pink-400"></i></a>
 <a href="#"><i class="fab fa-tiktok"></i></a>
 </div>
@@ -523,11 +520,11 @@ Can I confirm my size before ordering?
 </div>
 </footer>
 
-<!-- FLOATING WHATSAPP -->
-<a href="https://wa.me/2349155311480" target="_blank"
-class="fixed bottom-6 right-6 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition z-40">
-<i class="fab fa-whatsapp text-white text-4xl"></i>
-</a>
+<!-- FLOATING CHAT BUTTON -->
+<button onclick="openChat()" class="fixed bottom-6 right-6 w-16 h-16 bg-burgundy rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition z-40">
+<i class="fa-solid fa-comment-dots text-white text-3xl"></i>
+<span id="chat-unread-badge" class="hidden absolute -top-1 -right-1 bg-gold text-charcoal text-xs font-bold rounded-full w-4 h-4"></span>
+</button>
 
 <!-- BACK TO TOP -->
 <button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})"
@@ -557,9 +554,19 @@ class="fixed bottom-6 left-6 w-12 h-12 bg-burgundy text-white rounded-full shado
 <button onclick="payWithPaystack()" class="w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black flex items-center justify-center gap-2">
 <i class="fa-solid fa-lock"></i> Pay Now with Paystack
 </button>
-<button onclick="checkoutWhatsApp()" class="w-full mt-3 bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 flex items-center justify-center gap-2">
-<i class="fa-brands fa-whatsapp text-xl"></i> Or Order via WhatsApp
+
+<div class="mt-4 border-t pt-4">
+<p class="text-sm font-semibold mb-3 text-center">How would you like to receive your order?</p>
+<div class="grid grid-cols-2 gap-3">
+<button onclick="showPickupInfo()" class="border border-burgundy text-burgundy py-3 rounded-lg text-sm font-bold hover:bg-burgundy hover:text-white flex flex-col items-center gap-1">
+<i class="fa-solid fa-store text-lg"></i> Pick Up
 </button>
+<a href="tel:+2349155311480" class="border border-burgundy text-burgundy py-3 rounded-lg text-sm font-bold hover:bg-burgundy hover:text-white flex flex-col items-center gap-1">
+<i class="fa-solid fa-phone text-lg"></i> Call for Delivery
+</a>
+</div>
+</div>
+
 <button onclick="closeCart()" class="w-full mt-3 border border-gray-300 py-3 rounded-lg hover:bg-gray-100">Continue Shopping</button>
 </div>
 </div>
@@ -585,6 +592,37 @@ class="fixed bottom-6 left-6 w-12 h-12 bg-burgundy text-white rounded-full shado
 </div>
 </div>
 
+<!-- PICKUP INFO MODAL -->
+<div id="pickup-modal" class="hidden fixed inset-0 z-[120] bg-black/60 flex items-center justify-center p-5">
+<div class="bg-white rounded-2xl max-w-sm w-full p-6 relative">
+<button onclick="closePickupInfo()" class="absolute top-3 right-3 text-2xl">&times;</button>
+<h3 class="serif text-2xl font-bold mb-3"><i class="fa-solid fa-store text-burgundy mr-2"></i>Pickup Location</h3>
+<p class="text-gray-600 mb-2" id="pickup-address-text">PICKUP_ADDRESS_HERE</p>
+<p class="text-sm text-gray-500 mb-5"><i class="fa-solid fa-clock mr-1"></i> Mon – Sat, 9:00 AM – 6:00 PM</p>
+<button onclick="openDirections()" class="w-full text-center bg-burgundy text-white py-3 rounded-lg font-bold hover:bg-black mb-3">
+<i class="fa-solid fa-location-dot mr-2"></i>Get Directions
+</button>
+<p class="text-xs text-gray-400 text-center">Please bring your payment reference when picking up your order.</p>
+</div>
+</div>
+
+<!-- CHAT MODAL -->
+<div id="chat-modal" class="hidden fixed inset-0 z-[130] bg-black/50 flex justify-end">
+<div class="cart-panel bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+<div class="flex items-center justify-between p-5 border-b bg-burgundy text-white">
+<h3 class="text-xl font-bold"><i class="fa-solid fa-headset mr-2"></i>Customer Care Chat</h3>
+<button onclick="closeChat()" class="text-3xl leading-none hover:text-gold">&times;</button>
+</div>
+<div class="flex-1 overflow-y-auto p-5 space-y-3" id="chat-messages">
+<p class="text-center text-gray-400 text-sm">Send us a message and we'll reply here shortly.</p>
+</div>
+<div class="border-t p-4 flex gap-2">
+<input type="text" id="chat-input" placeholder="Type your message..." class="flex-1 border rounded-lg p-3 outline-none" onkeydown="if(event.key==='Enter') sendChatMessage()">
+<button onclick="sendChatMessage()" class="bg-burgundy text-white px-5 rounded-lg hover:bg-black"><i class="fa-solid fa-paper-plane"></i></button>
+</div>
+</div>
+</div>
+
 <!-- TOAST -->
 <div id="toast" class="hidden fixed bottom-6 left-6 z-[100] bg-charcoal text-white px-6 py-3 rounded-lg shadow-lg items-center gap-2">
 <i class="fa-solid fa-circle-check text-green-400"></i>
@@ -594,12 +632,15 @@ class="fixed bottom-6 left-6 w-12 h-12 bg-burgundy text-white rounded-full shado
 <script>
 const PAYSTACK_PUBLIC_KEY = 'pk_live_1360dbbf248bd92c3afcb1b2b9a132f13f941d83';
 const PAYSTACK_SUBACCOUNT = 'ACCT_uncdeehkzbpwzbm'; // Rebecca's Closet — 10% split
-const WHATSAPP_NUMBER = '2349155311480';
+const CALL_NUMBER = '+2349155311480';
+const PICKUP_ADDRESS = 'PICKUP_ADDRESS_HERE'; // TODO: replace with your real pickup address
 const COUPONS = { 'TIMELESS10': 0.10, 'CLOSET5': 0.05 };
 
 let cart = JSON.parse(localStorage.getItem('rc_cart') || '[]');
 let wishlist = JSON.parse(localStorage.getItem('rc_wishlist') || '[]');
 let appliedDiscount = 0;
+
+document.getElementById('pickup-address-text').textContent = PICKUP_ADDRESS;
 
 // Live product store, populated from Firestore
 let liveProducts = {};       // id -> product data
@@ -608,7 +649,7 @@ let productOrder = [];       // array of ids, in load order
 function formatNaira(num){ return '₦' + Number(num).toLocaleString('en-NG'); }
 
 // ============================================================
-// FIRESTORE LIVE LISTENER
+// FIRESTORE LIVE LISTENER (PRODUCTS)
 // ============================================================
 window.addEventListener('firebase-ready', () => {
   const { db, collection, onSnapshot, query, orderBy } = window._firebase;
@@ -825,6 +866,15 @@ function openCart(){ renderCart(); document.getElementById('cart-modal').classLi
 function closeCart(){ document.getElementById('cart-modal').classList.add('hidden'); document.body.classList.remove('overflow-hidden'); }
 
 // ============================================================
+// PICKUP INFO
+// ============================================================
+function showPickupInfo(){ document.getElementById('pickup-modal').classList.remove('hidden'); }
+function closePickupInfo(){ document.getElementById('pickup-modal').classList.add('hidden'); }
+function openDirections(){
+  window.open(`https://maps.google.com/?q=${encodeURIComponent(PICKUP_ADDRESS)}`, '_blank');
+}
+
+// ============================================================
 // WISHLIST
 // ============================================================
 function toggleWishlist(e, id){
@@ -908,7 +958,7 @@ function addToCartFromQuickView(id){
 function closeQuickView(){ document.getElementById('quickview-modal').classList.add('hidden'); }
 
 // ============================================================
-// PAYSTACK + WHATSAPP
+// PAYSTACK
 // ============================================================
 function payWithPaystack(){
   if(cart.length === 0) return;
@@ -936,22 +986,108 @@ function payWithPaystack(){
   handler.openIframe();
 }
 
-function checkoutWhatsApp(){
-  if(cart.length === 0) return;
-  let msg = "Hello Rebecca's Closet, I would like to order the following:\n\n";
-  cart.forEach((item, idx) => {
-    msg += `${idx + 1}. ${item.name}\n   Qty: ${item.qty} x ${formatNaira(item.price)} = ${formatNaira(item.price * item.qty)}\n\n`;
-  });
-  msg += `Total: ${formatNaira(cartTotal())}\n\nPlease confirm availability and delivery details. Thank you.`;
-  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
 function showToast(text){
   const toast = document.getElementById('toast');
   document.getElementById('toast-text').textContent = text;
   toast.classList.remove('hidden'); toast.classList.add('flex');
   setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('flex'); }, 2000);
 }
+
+// ============================================================
+// CUSTOMER CARE CHAT (Firestore-backed)
+// ============================================================
+let chatSessionId = localStorage.getItem('rc_chat_session');
+if(!chatSessionId){
+  chatSessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+  localStorage.setItem('rc_chat_session', chatSessionId);
+}
+
+function renderChatMessages(messages){
+  const container = document.getElementById('chat-messages');
+  if(!messages || messages.length === 0){
+    container.innerHTML = `<p class="text-center text-gray-400 text-sm">Send us a message and we'll reply here shortly.</p>`;
+    return;
+  }
+  container.innerHTML = messages.map(m => {
+    const isAdmin = m.sender === 'admin';
+    return `
+      <div class="flex ${isAdmin ? 'justify-start' : 'justify-end'}">
+        <div class="max-w-[75%] ${isAdmin ? 'bg-gold/20 text-charcoal' : 'bg-burgundy text-white'} rounded-xl px-4 py-2 text-sm">
+          ${m.text}
+        </div>
+      </div>
+    `;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function openChat(){
+  document.getElementById('chat-modal').classList.remove('hidden');
+  document.body.classList.add('overflow-hidden');
+
+  const badge = document.getElementById('chat-unread-badge');
+  badge.classList.add('hidden');
+
+  if(!window._firebase) return;
+  const { db, doc, onSnapshot, setDoc, updateDoc, serverTimestamp } = window._firebase;
+  const chatRef = doc(db, 'chats', chatSessionId);
+
+  setDoc(chatRef, {
+    createdAt: serverTimestamp(),
+    lastMessageAt: serverTimestamp(),
+    unreadByCustomer: false
+  }, { merge: true }).catch(err => console.error(err));
+
+  onSnapshot(chatRef, (snap) => {
+    if(!snap.exists()) return;
+    const data = snap.data();
+    renderChatMessages(data.messages || []);
+    if(data.unreadByCustomer){
+      updateDoc(chatRef, { unreadByCustomer: false }).catch(()=>{});
+    }
+  });
+}
+
+function closeChat(){
+  document.getElementById('chat-modal').classList.add('hidden');
+  document.body.classList.remove('overflow-hidden');
+}
+
+async function sendChatMessage(){
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if(!text || !window._firebase) return;
+  const { db, doc, setDoc, arrayUnion, serverTimestamp } = window._firebase;
+  const chatRef = doc(db, 'chats', chatSessionId);
+  const message = { sender: 'customer', text, timestamp: Date.now() };
+
+  try {
+    await setDoc(chatRef, {
+      createdAt: serverTimestamp(),
+      messages: arrayUnion(message),
+      lastMessageAt: serverTimestamp(),
+      unreadByAdmin: true
+    }, { merge: true });
+    input.value = '';
+  } catch(err){
+    console.error(err);
+    showToast('Could not send message. Try again.');
+  }
+}
+
+// Background listener so the unread badge shows even when chat is closed
+window.addEventListener('firebase-ready', () => {
+  const { db, doc, onSnapshot } = window._firebase;
+  const chatRef = doc(db, 'chats', chatSessionId);
+  onSnapshot(chatRef, (snap) => {
+    if(!snap.exists()) return;
+    const data = snap.data();
+    const chatModalOpen = !document.getElementById('chat-modal').classList.contains('hidden');
+    if(data.unreadByCustomer && !chatModalOpen){
+      document.getElementById('chat-unread-badge').classList.remove('hidden');
+    }
+  });
+});
 
 // ============================================================
 // UI HELPERS: mobile menu, search, filter, sort, FAQ, scroll
