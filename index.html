@@ -592,7 +592,8 @@ class="fixed bottom-6 left-6 w-12 h-12 bg-burgundy text-white rounded-full shado
 </div>
 
 <script>
-const PAYSTACK_PUBLIC_KEY = 'pk_live_1360dbbf248bd92c3afcb1b2b9a132f13f941d83'; // ⚠️ REPLACE with Rebecca's Closet's real Paystack public key
+const PAYSTACK_PUBLIC_KEY = 'pk_live_1360dbbf248bd92c3afcb1b2b9a132f13f941d83';
+const PAYSTACK_SUBACCOUNT = 'ACCT_uncdeehkzbpwzbm'; // Rebecca's Closet — 10% split
 const WHATSAPP_NUMBER = '2349155311480';
 const COUPONS = { 'TIMELESS10': 0.10, 'CLOSET5': 0.05 };
 
@@ -922,13 +923,11 @@ function payWithPaystack(){
     amount: amountInKobo,
     currency: 'NGN',
     ref: ref,
+    subaccount: PAYSTACK_SUBACCOUNT,
     metadata: {
       custom_fields: [{ display_name: "Order Items", variable_name: "order_items", value: cart.map(i => `${i.name} x${i.qty}`).join(', ') }]
     },
     callback: function(response){
-      // Client-side success only. For real fulfillment, verify this reference
-      // server-side (e.g. a Firebase Cloud Function calling Paystack's
-      // /transaction/verify endpoint) before treating the order as paid.
       showToast('Payment successful! Ref: ' + response.reference);
       cart = []; appliedDiscount = 0; saveCart(); closeCart();
     },
