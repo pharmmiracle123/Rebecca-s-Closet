@@ -6,7 +6,7 @@
 <title>Rebecca's Closet | Admin Panel</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
 
 <!-- Firebase SDKs -->
@@ -18,9 +18,6 @@
     onSnapshot, arrayUnion
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ============================================================
-  // FIREBASE PROJECT CONFIG
-  // ============================================================
   const firebaseConfig = {
     apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
     authDomain: "pts-bscht.firebaseapp.com",
@@ -45,7 +42,7 @@ tailwind.config={
   theme:{
     extend:{
       colors:{ burgundy:"#6E1423", gold:"#C9A24B", cream:"#FBF6EE", charcoal:"#1E1B18" },
-      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'] }
+      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'], mono:['"JetBrains Mono"','monospace'] }
     }
   }
 }
@@ -62,6 +59,53 @@ body{background:#FBF6EE;}
 .order-filter-btn{background:white;color:#6E1423;}
 .order-filter-btn.active{background:#6E1423;color:white;}
 .status-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
+.stat-card{transition:.2s;}
+.stat-card:hover{transform:translateY(-3px);}
+
+/* ============================================================ */
+/* PRINT RECEIPT STYLES */
+/* ============================================================ */
+#print-receipt-wrapper{
+  display:none;
+}
+@media print{
+  @page{ margin:0; size:80mm auto; }
+  body *{ visibility:hidden; }
+  #print-receipt-wrapper, #print-receipt-wrapper *{ visibility:visible; }
+  #print-receipt-wrapper{
+    display:block !important;
+    position:absolute;
+    top:0; left:0;
+    width:100%;
+  }
+}
+.receipt-box{
+  width:320px;
+  margin:0 auto;
+  background:#fff;
+  color:#1E1B18;
+  font-family:'Jost',sans-serif;
+  padding:24px 22px;
+}
+.receipt-dashed{
+  border-top:1.5px dashed #999;
+  margin:14px 0;
+}
+.receipt-logo{
+  width:52px; height:52px;
+  border-radius:999px;
+  background:#6E1423;
+  color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Playfair Display',serif;
+  font-size:22px; font-weight:900;
+  margin:0 auto 10px;
+}
+.receipt-barcode{
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:3px;
+  font-size:11px;
+}
 </style>
 </head>
 
@@ -212,10 +256,40 @@ body{background:#FBF6EE;}
 
   <!-- ===================== ORDERS TAB ===================== -->
   <div id="tab-orders" class="max-w-6xl mx-auto px-5 py-8 hidden">
+
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="serif text-2xl font-bold">Customer Orders</h2>
+      <button onclick="exportOrdersCSV()" class="bg-charcoal text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-black flex items-center gap-2">
+        <i class="fa-solid fa-file-csv"></i> Export CSV
+      </button>
+    </div>
+
+    <!-- STATS DASHBOARD -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card bg-white rounded-xl shadow border border-gold/20 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Total Orders</p>
+        <p id="stat-total-orders" class="text-2xl font-bold text-charcoal mt-1">0</p>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow border border-gold/20 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Revenue (Paid)</p>
+        <p id="stat-revenue" class="text-2xl font-bold text-green-700 mt-1">₦0</p>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow border border-gold/20 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Pending Payment</p>
+        <p id="stat-pending" class="text-2xl font-bold text-yellow-600 mt-1">0</p>
+      </div>
+      <div class="stat-card bg-white rounded-xl shadow border border-gold/20 p-4">
+        <p class="text-xs text-gray-500 uppercase tracking-wide">Unfulfilled</p>
+        <p id="stat-unfulfilled" class="text-2xl font-bold text-burgundy mt-1">0</p>
+      </div>
+    </div>
+
+    <!-- SEARCH + FILTERS -->
     <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-      <div>
-        <h2 class="serif text-2xl font-bold">Customer Orders</h2>
-        <span id="order-count" class="text-sm text-gray-500"></span>
+      <div class="relative flex-1 max-w-sm">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" id="order-search" oninput="renderOrdersList()" placeholder="Search by reference or email..."
+          class="w-full border border-gold/30 rounded-lg p-3 pl-11 outline-none focus:border-burgundy bg-white">
       </div>
       <div class="flex gap-2 flex-wrap">
         <button onclick="setOrderFilter('all')" id="order-filter-all" class="order-filter-btn active px-4 py-2 rounded-lg text-sm font-semibold border border-burgundy">All</button>
@@ -225,12 +299,14 @@ body{background:#FBF6EE;}
       </div>
     </div>
 
+    <span id="order-count" class="text-sm text-gray-500"></span>
+
     <div id="orders-loading" class="text-center py-10">
       <div class="spinner mx-auto"></div>
       <p class="text-gray-500 mt-3 text-sm">Loading orders...</p>
     </div>
 
-    <div id="orders-list" class="space-y-4"></div>
+    <div id="orders-list" class="space-y-4 mt-4"></div>
     <p id="no-orders" class="hidden text-center text-gray-500 py-10">No orders yet.</p>
   </div>
 
@@ -240,14 +316,12 @@ body{background:#FBF6EE;}
 
     <div class="grid md:grid-cols-3 gap-5" style="min-height:60vh;">
 
-      <!-- Conversation list -->
       <div class="bg-white rounded-2xl shadow-lg border border-gold/20 overflow-hidden md:col-span-1">
         <div class="p-4 border-b bg-gold/10 font-semibold text-sm">Conversations</div>
         <div id="chats-list" class="divide-y divide-gold/10 overflow-y-auto" style="max-height:65vh;"></div>
         <p id="no-chats" class="hidden text-center text-gray-500 py-10 text-sm">No customer chats yet.</p>
       </div>
 
-      <!-- Active thread -->
       <div class="bg-white rounded-2xl shadow-lg border border-gold/20 flex flex-col md:col-span-2">
         <div id="active-chat-header" class="p-4 border-b bg-gold/10 font-semibold text-sm">
           Select a conversation
@@ -289,6 +363,13 @@ body{background:#FBF6EE;}
   </div>
 </div>
 
+<!-- ============================================================ -->
+<!-- PRINT RECEIPT (hidden on screen, shown only during print) -->
+<!-- ============================================================ -->
+<div id="print-receipt-wrapper">
+  <div class="receipt-box" id="print-receipt-content"></div>
+</div>
+
 <!-- Notification sound -->
 <audio id="notif-sound" preload="auto">
   <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
@@ -298,7 +379,7 @@ body{background:#FBF6EE;}
 // ============================================================
 // ⚠️ SET YOUR ADMIN PASSWORD HERE
 // ============================================================
-const ADMIN_PASSWORD = "RebeccaAdmin2026"; 
+const ADMIN_PASSWORD = "RebeccaAdmin2026";
 
 // ============================================================
 // ⚠️ CLOUDINARY CONFIG
@@ -336,12 +417,10 @@ function showDashboard(){
   initOrdersListener();
 }
 
-// Check session on load
 if(sessionStorage.getItem('rc_admin_auth') === 'true'){
   document.addEventListener('DOMContentLoaded', showDashboard);
 }
 
-// Image preview
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('p-image').addEventListener('change', function(e){
     const file = e.target.files[0];
@@ -577,9 +656,8 @@ async function confirmDelete(){
 // ============================================================
 // ORDERS
 // ============================================================
-let allOrders = {};          // orderId -> order data
+let allOrders = {};
 let currentOrderFilter = 'all';
-let knownOrderKeys = new Set();
 let isFirstOrdersLoad = true;
 
 function initOrdersListener(){
@@ -594,22 +672,20 @@ function initOrdersListener(){
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         newOrders[docSnap.id] = data;
-        const key = docSnap.id + '_' + (data.paymentStatus || '') + '_' + (data.fulfillmentStatus || '');
-        if(!isFirstOrdersLoad && !knownOrderKeys.has(key)){
-          // Either a brand new order, or a status changed elsewhere — only
-          // chime for genuinely new order docs, not our own edits.
-          if(!Object.keys(allOrders).includes(docSnap.id)) hasNewIncoming = true;
+        if(!isFirstOrdersLoad && !Object.keys(allOrders).includes(docSnap.id)){
+          hasNewIncoming = true;
         }
-        knownOrderKeys.add(key);
       });
 
       allOrders = newOrders;
       document.getElementById('orders-loading').classList.add('hidden');
       renderOrdersList();
+      renderOrderStats();
       updateOrdersBadge();
 
       if(hasNewIncoming){
         playNotificationSound();
+        showToast('New order received!');
       }
       isFirstOrdersLoad = false;
     }, (err) => {
@@ -620,6 +696,19 @@ function initOrdersListener(){
   } catch(err){
     console.error(err);
   }
+}
+
+function renderOrderStats(){
+  const orders = Object.values(allOrders);
+  const total = orders.length;
+  const revenue = orders.filter(o => o.paymentStatus === 'paid').reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const pending = orders.filter(o => (o.paymentStatus || 'pending_verification') === 'pending_verification').length;
+  const unfulfilled = orders.filter(o => (o.fulfillmentStatus || 'pending') !== 'fulfilled').length;
+
+  document.getElementById('stat-total-orders').textContent = total;
+  document.getElementById('stat-revenue').textContent = '₦' + revenue.toLocaleString();
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-unfulfilled').textContent = unfulfilled;
 }
 
 function setOrderFilter(filter){
@@ -637,6 +726,14 @@ function orderMatchesFilter(order){
   return true;
 }
 
+function orderMatchesSearch(order){
+  const term = document.getElementById('order-search').value.trim().toLowerCase();
+  if(!term) return true;
+  const ref = (order.paystackRef || '').toLowerCase();
+  const email = (order.customerEmail || '').toLowerCase();
+  return ref.includes(term) || email.includes(term);
+}
+
 function formatOrderDate(ts){
   if(!ts || !ts.toDate) return '—';
   const d = ts.toDate();
@@ -652,10 +749,19 @@ function fulfillmentBadge(status){
   return `<span class="status-pill bg-gray-200 text-gray-600">Not Fulfilled</span>`;
 }
 
+function itemImageHTML(it){
+  if(it.imageUrl){
+    return `<img src="${it.imageUrl}" class="w-14 h-14 rounded-lg object-cover border border-gold/20">`;
+  }
+  return `<div class="w-14 h-14 rounded-lg bg-gold/10 flex items-center justify-center border border-gold/20"><i class="fa-solid fa-image text-gold/50"></i></div>`;
+}
+
 function renderOrdersList(){
   const listEl = document.getElementById('orders-list');
   const noOrdersEl = document.getElementById('no-orders');
-  const ids = Object.keys(allOrders).filter(id => orderMatchesFilter(allOrders[id]));
+  const ids = Object.keys(allOrders)
+    .filter(id => orderMatchesFilter(allOrders[id]))
+    .filter(id => orderMatchesSearch(allOrders[id]));
 
   document.getElementById('order-count').textContent =
     `${ids.length} order${ids.length !== 1 ? 's' : ''}${currentOrderFilter !== 'all' ? ' (filtered)' : ''}`;
@@ -674,9 +780,13 @@ function renderOrdersList(){
     const items = o.items || [];
 
     const itemsHTML = items.map(it => `
-      <div class="flex justify-between text-sm py-1">
-        <span>${it.name} <span class="text-gray-400">x${it.qty}</span></span>
-        <span class="font-medium">₦${Number(it.price * it.qty).toLocaleString()}</span>
+      <div class="flex items-center gap-3 py-2">
+        ${itemImageHTML(it)}
+        <div class="flex-1">
+          <p class="text-sm font-medium">${it.name}</p>
+          <p class="text-xs text-gray-500">Qty: ${it.qty} × ₦${Number(it.price).toLocaleString()}</p>
+        </div>
+        <span class="text-sm font-semibold">₦${Number(it.price * it.qty).toLocaleString()}</span>
       </div>
     `).join('');
 
@@ -694,11 +804,11 @@ function renderOrdersList(){
           </div>
         </div>
 
-        <div class="border-t border-b border-gold/10 py-3 my-2">
-          ${itemsHTML || '<p class="text-sm text-gray-400">No item details.</p>'}
+        <div class="border-t border-b border-gold/10 divide-y divide-gold/10 my-2">
+          ${itemsHTML || '<p class="text-sm text-gray-400 py-2">No item details.</p>'}
         </div>
 
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex justify-between items-center mb-4 mt-2">
           <span class="text-sm text-gray-500">Total</span>
           <span class="text-burgundy font-bold text-xl">₦${Number(o.totalAmount || 0).toLocaleString()}</span>
         </div>
@@ -712,6 +822,9 @@ function renderOrdersList(){
             ? `<button onclick="updateOrderField('${id}','fulfillmentStatus','pending')" class="flex-1 min-w-[140px] border border-gold/40 text-charcoal py-2.5 rounded-lg text-sm font-semibold hover:bg-gold/10">Mark as Unfulfilled</button>`
             : `<button onclick="updateOrderField('${id}','fulfillmentStatus','fulfilled')" class="flex-1 min-w-[140px] bg-burgundy text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-black">Mark as Fulfilled</button>`
           }
+          <button onclick="printReceipt('${id}')" class="flex-1 min-w-[140px] border border-charcoal text-charcoal py-2.5 rounded-lg text-sm font-semibold hover:bg-charcoal hover:text-white">
+            <i class="fa-solid fa-print mr-1"></i> Print Receipt
+          </button>
         </div>
       </div>
     `;
@@ -744,9 +857,151 @@ function updateOrdersBadge(){
 }
 
 // ============================================================
+// PRINT RECEIPT — pulls the order fresh from allOrders by ID,
+// so there's no risk of corrupted JSON in an inline attribute.
+// ============================================================
+function printReceipt(orderId){
+  const o = allOrders[orderId];
+  if(!o){
+    showToast('Could not find order to print.', true);
+    return;
+  }
+
+  const items = o.items || [];
+  const subtotal = items.reduce((sum, it) => sum + (Number(it.price) * Number(it.qty)), 0);
+  const total = Number(o.totalAmount || subtotal);
+  const discount = subtotal - total;
+
+  const itemsRows = items.map(it => `
+    <tr>
+      <td style="padding:5px 0;font-size:12.5px;">${it.name}</td>
+      <td style="padding:5px 0;font-size:12.5px;text-align:center;">${it.qty}</td>
+      <td style="padding:5px 0;font-size:12.5px;text-align:right;">₦${Number(it.price * it.qty).toLocaleString()}</td>
+    </tr>
+  `).join('');
+
+  const paymentStatus = o.paymentStatus || 'pending_verification';
+  const dateStr = o.createdAt && o.createdAt.toDate
+    ? o.createdAt.toDate().toLocaleString('en-NG', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+    : new Date().toLocaleString('en-NG', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  document.getElementById('print-receipt-content').innerHTML = `
+    <div style="text-align:center;">
+      <div class="receipt-logo">RC</div>
+      <h2 class="serif" style="font-size:20px;font-weight:900;margin:0;">Rebecca's Closet</h2>
+      <p style="font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:#6E1423;margin:2px 0 0;">Classic &amp; Timeless</p>
+    </div>
+
+    <div class="receipt-dashed"></div>
+
+    <table style="width:100%;font-size:12px;color:#444;">
+      <tr>
+        <td style="padding:2px 0;">Date</td>
+        <td style="padding:2px 0;text-align:right;font-weight:600;">${dateStr}</td>
+      </tr>
+      <tr>
+        <td style="padding:2px 0;">Reference</td>
+        <td style="padding:2px 0;text-align:right;font-weight:600;">${o.paystackRef || '—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:2px 0;">Customer</td>
+        <td style="padding:2px 0;text-align:right;font-weight:600;word-break:break-all;">${o.customerEmail || '—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:2px 0;">Status</td>
+        <td style="padding:2px 0;text-align:right;font-weight:700;color:${paymentStatus === 'paid' ? '#16a34a' : '#ca8a04'};">
+          ${paymentStatus === 'paid' ? 'PAID' : 'PENDING VERIFICATION'}
+        </td>
+      </tr>
+    </table>
+
+    <div class="receipt-dashed"></div>
+
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1.5px solid #1E1B18;">
+          <th style="text-align:left;padding-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Item</th>
+          <th style="text-align:center;padding-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Qty</th>
+          <th style="text-align:right;padding-bottom:6px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>${itemsRows || '<tr><td colspan="3" style="padding:10px 0;text-align:center;color:#999;">No item details</td></tr>'}</tbody>
+    </table>
+
+    <div class="receipt-dashed"></div>
+
+    <table style="width:100%;font-size:13px;">
+      <tr>
+        <td style="padding:3px 0;color:#555;">Subtotal</td>
+        <td style="padding:3px 0;text-align:right;">₦${subtotal.toLocaleString()}</td>
+      </tr>
+      ${discount > 0 ? `
+      <tr>
+        <td style="padding:3px 0;color:#16a34a;">Discount</td>
+        <td style="padding:3px 0;text-align:right;color:#16a34a;">-₦${discount.toLocaleString()}</td>
+      </tr>` : ''}
+      <tr>
+        <td style="padding:8px 0 0;font-size:17px;font-weight:900;">TOTAL</td>
+        <td style="padding:8px 0 0;font-size:17px;font-weight:900;text-align:right;">₦${total.toLocaleString()}</td>
+      </tr>
+    </table>
+
+    <div class="receipt-dashed"></div>
+
+    <div style="text-align:center;">
+      <p class="receipt-barcode">*${(o.paystackRef || 'NOREF').toUpperCase()}*</p>
+      <p style="font-size:13px;font-weight:700;margin-top:14px;">Thank you for shopping with us!</p>
+      <p style="font-size:11px;color:#777;margin-top:4px;">+234 915 531 1480 &nbsp;•&nbsp; rebeccascloset.ng@gmail.com</p>
+      <p style="font-size:10px;color:#aaa;margin-top:10px;">Please retain this receipt for pickup or exchange.</p>
+    </div>
+  `;
+
+  // Give the browser a moment to paint before triggering print
+  setTimeout(() => window.print(), 50);
+}
+
+// ============================================================
+// EXPORT ORDERS TO CSV
+// ============================================================
+function exportOrdersCSV(){
+  const orders = Object.values(allOrders);
+  if(orders.length === 0){
+    showToast('No orders to export.', true);
+    return;
+  }
+
+  const headers = ['Reference', 'Email', 'Items', 'Total (NGN)', 'Payment Status', 'Fulfillment Status', 'Date'];
+  const rows = orders.map(o => {
+    const itemsStr = (o.items || []).map(it => `${it.name} x${it.qty}`).join('; ');
+    const date = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate().toLocaleString('en-NG') : '';
+    return [
+      o.paystackRef || '',
+      o.customerEmail || '',
+      itemsStr,
+      o.totalAmount || 0,
+      o.paymentStatus || 'pending_verification',
+      o.fulfillmentStatus || 'pending',
+      date
+    ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
+  });
+
+  const csvContent = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `rebeccas-closet-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  showToast('Orders exported successfully!');
+}
+
+// ============================================================
 // CUSTOMER CHATS
 // ============================================================
-let allChats = {};        // chatId -> chat data
+let allChats = {};
 let activeChatId = null;
 let knownChatIds = new Set();
 let isFirstChatsLoad = true;
@@ -764,16 +1019,9 @@ function initChatsListener(){
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         newChats[docSnap.id] = data;
-
         if(data.unreadByAdmin) unreadCount++;
-
-        // Detect brand-new message arriving after initial load
-        if(!isFirstChatsLoad && data.unreadByAdmin && !knownChatIds.has(docSnap.id + '_' + (data.messages ? data.messages.length : 0))){
-          hasNewIncoming = true;
-        }
       });
 
-      // Track message counts to detect new arrivals on already-known chats
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
         const msgCount = data.messages ? data.messages.length : 0;
@@ -792,7 +1040,6 @@ function initChatsListener(){
         playNotificationSound();
       }
 
-      // If a thread is open, refresh it live
       if(activeChatId && allChats[activeChatId]){
         renderActiveChat(activeChatId);
       }
@@ -820,7 +1067,7 @@ function updateChatsBadge(count){
 function playNotificationSound(){
   const audio = document.getElementById('notif-sound');
   audio.currentTime = 0;
-  audio.play().catch(() => {}); // ignore autoplay-block errors
+  audio.play().catch(() => {});
 }
 
 function renderChatsList(){
@@ -859,7 +1106,6 @@ function openChatThread(chatId){
   activeChatId = chatId;
   const { db, doc, updateDoc } = window._firebase;
 
-  // Mark as read by admin
   updateDoc(doc(db, 'chats', chatId), { unreadByAdmin: false }).catch(()=>{});
 
   document.getElementById('admin-reply-input').disabled = false;
