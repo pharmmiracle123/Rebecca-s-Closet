@@ -17,7 +17,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, onSnapshot, query, orderBy,
-    doc, setDoc, updateDoc, arrayUnion, serverTimestamp
+    doc, setDoc, updateDoc, arrayUnion, serverTimestamp, addDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -33,7 +33,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  window._firebase = { db, collection, onSnapshot, query, orderBy, doc, setDoc, updateDoc, arrayUnion, serverTimestamp };
+  window._firebase = { db, collection, onSnapshot, query, orderBy, doc, setDoc, updateDoc, arrayUnion, serverTimestamp, addDoc };
   window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
@@ -967,6 +967,14 @@ function payWithPaystack(){
   if(!email || !email.includes('@')){ showToast('Please enter a valid email to continue'); emailInput.focus(); return; }
   const amountInKobo = cartTotal() * 100;
   const ref = 'RC-' + Date.now();
+
+  const orderSnapshot = {
+    items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, imageUrl: i.imageUrl || '' })),
+    customerEmail: email,
+    totalAmount: cartTotal(),
+    paystackRef: ref
+  };
+
   const handler = PaystackPop.setup({
     key: PAYSTACK_PUBLIC_KEY,
     email: email,
@@ -978,12 +986,34 @@ function payWithPaystack(){
       custom_fields: [{ display_name: "Order Items", variable_name: "order_items", value: cart.map(i => `${i.name} x${i.qty}`).join(', ') }]
     },
     callback: function(response){
+      saveOrderToFirestore(orderSnapshot, response.reference);
       showToast('Payment successful! Ref: ' + response.reference);
       cart = []; appliedDiscount = 0; saveCart(); closeCart();
     },
     onClose: function(){ showToast('Payment window closed'); }
   });
   handler.openIframe();
+}
+
+async function saveOrderToFirestore(orderData, reference){
+  if(!window._firebase) return;
+  const { db, collection, addDoc, serverTimestamp } = window._firebase;
+  try {
+    await addDoc(collection(db, 'orders'), {
+      items: orderData.items,
+      customerEmail: orderData.customerEmail,
+      totalAmount: orderData.totalAmount,
+      paystackRef: reference,
+      paymentStatus: 'pending_verification',
+      fulfillmentStatus: 'pending',
+      createdAt: serverTimestamp()
+    });
+  } catch(err){
+    console.error('Could not save order:', err);
+    // Payment already succeeded on Paystack's side; this only affects
+    // whether it shows up in the admin Orders tab. Reference is still
+    // visible in the Paystack dashboard as a fallback.
+  }
 }
 
 function showToast(text){
