@@ -14,7 +14,8 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, addDoc, getDocs, doc,
-    updateDoc, deleteDoc, orderBy, query, serverTimestamp
+    updateDoc, deleteDoc, orderBy, query, serverTimestamp,
+    onSnapshot, arrayUnion
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ============================================================
@@ -34,7 +35,7 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  window._firebase = { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp };
+  window._firebase = { db, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, orderBy, query, serverTimestamp, onSnapshot, arrayUnion };
   window._firebaseReady = true;
   document.dispatchEvent(new Event('firebase-ready'));
 </script>
@@ -56,6 +57,8 @@ tailwind.config={
 body{background:#FBF6EE;}
 .spinner{border:3px solid #f3f3f3;border-top:3px solid #6E1423;border-radius:50%;width:20px;height:20px;animation:spin 0.8s linear infinite;}
 @keyframes spin{100%{transform:rotate(360deg);}}
+.tab-btn.active{border-bottom:3px solid #6E1423;color:#6E1423;font-weight:700;}
+.chat-thread.active{background:#FBF6EE;border-left:4px solid #6E1423;}
 </style>
 </head>
 
@@ -92,7 +95,21 @@ body{background:#FBF6EE;}
     </div>
   </header>
 
-  <div class="max-w-6xl mx-auto px-5 py-8">
+  <!-- TABS -->
+  <div class="bg-white border-b border-gold/20 sticky top-[72px] z-20">
+    <div class="max-w-6xl mx-auto px-5 flex gap-8">
+      <button id="tab-products-btn" onclick="switchTab('products')" class="tab-btn active py-4 text-sm">
+        <i class="fa-solid fa-boxes-stacked mr-1"></i> Products
+      </button>
+      <button id="tab-chats-btn" onclick="switchTab('chats')" class="tab-btn py-4 text-sm relative">
+        <i class="fa-solid fa-comment-dots mr-1"></i> Customer Chats
+        <span id="chats-unread-badge" class="hidden absolute -top-1 -right-4 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================== PRODUCTS TAB ===================== -->
+  <div id="tab-products" class="max-w-6xl mx-auto px-5 py-8">
 
     <!-- Add / Edit Product Form -->
     <div class="bg-white rounded-2xl shadow-lg p-6 mb-10 border border-gold/20">
@@ -185,6 +202,42 @@ body{background:#FBF6EE;}
     <p id="no-products" class="hidden text-center text-gray-500 py-10">No products yet. Add your first one above.</p>
 
   </div>
+
+  <!-- ===================== CUSTOMER CHATS TAB ===================== -->
+  <div id="tab-chats" class="max-w-6xl mx-auto px-5 py-8 hidden">
+    <h2 class="serif text-2xl font-bold mb-6">Customer Chats</h2>
+
+    <div class="grid md:grid-cols-3 gap-5" style="min-height:60vh;">
+
+      <!-- Conversation list -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gold/20 overflow-hidden md:col-span-1">
+        <div class="p-4 border-b bg-gold/10 font-semibold text-sm">Conversations</div>
+        <div id="chats-list" class="divide-y divide-gold/10 overflow-y-auto" style="max-height:65vh;"></div>
+        <p id="no-chats" class="hidden text-center text-gray-500 py-10 text-sm">No customer chats yet.</p>
+      </div>
+
+      <!-- Active thread -->
+      <div class="bg-white rounded-2xl shadow-lg border border-gold/20 flex flex-col md:col-span-2">
+        <div id="active-chat-header" class="p-4 border-b bg-gold/10 font-semibold text-sm">
+          Select a conversation
+        </div>
+        <div id="active-chat-messages" class="flex-1 overflow-y-auto p-5 space-y-3" style="max-height:55vh;">
+          <p class="text-center text-gray-400 text-sm">No conversation selected.</p>
+        </div>
+        <div class="border-t p-4 flex gap-2">
+          <input type="text" id="admin-reply-input" placeholder="Type your reply..." disabled
+            class="flex-1 border rounded-lg p-3 outline-none disabled:bg-gray-100"
+            onkeydown="if(event.key==='Enter') sendAdminReply()">
+          <button onclick="sendAdminReply()" id="admin-reply-btn" disabled
+            class="bg-burgundy text-white px-5 rounded-lg hover:bg-black disabled:opacity-40">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- TOAST -->
@@ -205,6 +258,11 @@ body{background:#FBF6EE;}
   </div>
 </div>
 
+<!-- Notification sound -->
+<audio id="notif-sound" preload="auto">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
+
 <script>
 // ============================================================
 // ⚠️ SET YOUR ADMIN PASSWORD HERE
@@ -212,7 +270,7 @@ body{background:#FBF6EE;}
 const ADMIN_PASSWORD = "RebeccaAdmin2026";
 
 // ============================================================
-// ⚠️ CLOUDINARY CONFIG — replace UPLOAD PRESET with yours
+// ⚠️ CLOUDINARY CONFIG
 // ============================================================
 const CLOUDINARY_CLOUD_NAME = "xhkfiry2";
 const CLOUDINARY_UPLOAD_PRESET = "Project1";
@@ -243,6 +301,7 @@ function showDashboard(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('admin-dashboard').classList.remove('hidden');
   loadProducts();
+  initChatsListener();
 }
 
 // Check session on load
@@ -275,6 +334,16 @@ function showToast(text, isError){
   setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('flex'); }, 3000);
 }
 
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab){
+  document.getElementById('tab-products').classList.toggle('hidden', tab !== 'products');
+  document.getElementById('tab-chats').classList.toggle('hidden', tab !== 'chats');
+  document.getElementById('tab-products-btn').classList.toggle('active', tab === 'products');
+  document.getElementById('tab-chats-btn').classList.toggle('active', tab === 'chats');
+}
+
 function resetForm(){
   editingId = null;
   selectedImageFile = null;
@@ -286,7 +355,7 @@ function resetForm(){
 }
 
 // ============================================================
-// UPLOAD IMAGE TO CLOUDINARY (unsigned upload from browser)
+// UPLOAD IMAGE TO CLOUDINARY
 // ============================================================
 async function uploadToCloudinary(file){
   const statusEl = document.getElementById('upload-status');
@@ -468,6 +537,181 @@ async function confirmDelete(){
     console.error(err);
     showToast('Error deleting product: ' + err.message, true);
     closeConfirm();
+  }
+}
+
+// ============================================================
+// CUSTOMER CHATS
+// ============================================================
+let allChats = {};        // chatId -> chat data
+let activeChatId = null;
+let knownChatIds = new Set();
+let isFirstChatsLoad = true;
+
+function initChatsListener(){
+  const { db, collection, onSnapshot, query, orderBy } = window._firebase;
+
+  try {
+    const q = query(collection(db, 'chats'), orderBy('lastMessageAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      const newChats = {};
+      let unreadCount = 0;
+      let hasNewIncoming = false;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        newChats[docSnap.id] = data;
+
+        if(data.unreadByAdmin) unreadCount++;
+
+        // Detect brand-new message arriving after initial load
+        if(!isFirstChatsLoad && data.unreadByAdmin && !knownChatIds.has(docSnap.id + '_' + (data.messages ? data.messages.length : 0))){
+          hasNewIncoming = true;
+        }
+      });
+
+      // Track message counts to detect new arrivals on already-known chats
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const msgCount = data.messages ? data.messages.length : 0;
+        const key = docSnap.id + '_' + msgCount;
+        if(!isFirstChatsLoad && data.unreadByAdmin && !knownChatIds.has(key)){
+          hasNewIncoming = true;
+        }
+        knownChatIds.add(key);
+      });
+
+      allChats = newChats;
+      renderChatsList();
+      updateChatsBadge(unreadCount);
+
+      if(hasNewIncoming){
+        playNotificationSound();
+      }
+
+      // If a thread is open, refresh it live
+      if(activeChatId && allChats[activeChatId]){
+        renderActiveChat(activeChatId);
+      }
+
+      isFirstChatsLoad = false;
+    }, (err) => {
+      console.error(err);
+      document.getElementById('chats-list').innerHTML = `<p class="text-red-500 text-sm p-4">Could not load chats.</p>`;
+    });
+  } catch(err){
+    console.error(err);
+  }
+}
+
+function updateChatsBadge(count){
+  const badge = document.getElementById('chats-unread-badge');
+  if(count > 0){
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function playNotificationSound(){
+  const audio = document.getElementById('notif-sound');
+  audio.currentTime = 0;
+  audio.play().catch(() => {}); // ignore autoplay-block errors
+}
+
+function renderChatsList(){
+  const listEl = document.getElementById('chats-list');
+  const noChatsEl = document.getElementById('no-chats');
+  const ids = Object.keys(allChats);
+
+  if(ids.length === 0){
+    listEl.innerHTML = '';
+    noChatsEl.classList.remove('hidden');
+    return;
+  }
+  noChatsEl.classList.add('hidden');
+
+  listEl.innerHTML = ids.map(id => {
+    const chat = allChats[id];
+    const messages = chat.messages || [];
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    const preview = lastMsg ? (lastMsg.text.length > 40 ? lastMsg.text.slice(0, 40) + '…' : lastMsg.text) : 'No messages yet';
+    const isActive = id === activeChatId;
+    const isUnread = !!chat.unreadByAdmin;
+
+    return `
+      <div onclick="openChatThread('${id}')" class="chat-thread p-4 cursor-pointer hover:bg-gold/5 ${isActive ? 'active' : ''}">
+        <div class="flex justify-between items-center">
+          <span class="font-semibold text-sm">Customer ${id.slice(-5)}</span>
+          ${isUnread ? '<span class="w-2.5 h-2.5 bg-red-600 rounded-full"></span>' : ''}
+        </div>
+        <p class="text-xs text-gray-500 mt-1 truncate">${preview}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+function openChatThread(chatId){
+  activeChatId = chatId;
+  const { db, doc, updateDoc } = window._firebase;
+
+  // Mark as read by admin
+  updateDoc(doc(db, 'chats', chatId), { unreadByAdmin: false }).catch(()=>{});
+
+  document.getElementById('admin-reply-input').disabled = false;
+  document.getElementById('admin-reply-btn').disabled = false;
+
+  renderChatsList();
+  renderActiveChat(chatId);
+}
+
+function renderActiveChat(chatId){
+  const chat = allChats[chatId];
+  if(!chat) return;
+
+  document.getElementById('active-chat-header').textContent = `Customer ${chatId.slice(-5)}`;
+
+  const messages = chat.messages || [];
+  const container = document.getElementById('active-chat-messages');
+
+  if(messages.length === 0){
+    container.innerHTML = `<p class="text-center text-gray-400 text-sm">No messages yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = messages.map(m => {
+    const isAdmin = m.sender === 'admin';
+    return `
+      <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
+        <div class="max-w-[75%] ${isAdmin ? 'bg-burgundy text-white' : 'bg-gold/20 text-charcoal'} rounded-xl px-4 py-2 text-sm">
+          ${m.text}
+        </div>
+      </div>
+    `;
+  }).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendAdminReply(){
+  if(!activeChatId) return;
+  const input = document.getElementById('admin-reply-input');
+  const text = input.value.trim();
+  if(!text) return;
+
+  const { db, doc, updateDoc, arrayUnion, serverTimestamp } = window._firebase;
+  const message = { sender: 'admin', text, timestamp: Date.now() };
+
+  try {
+    await updateDoc(doc(db, 'chats', activeChatId), {
+      messages: arrayUnion(message),
+      lastMessageAt: serverTimestamp(),
+      unreadByCustomer: true
+    });
+    input.value = '';
+  } catch(err){
+    console.error(err);
+    showToast('Could not send reply: ' + err.message, true);
   }
 }
 </script>
