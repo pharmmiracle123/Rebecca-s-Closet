@@ -59,6 +59,9 @@ body{background:#FBF6EE;}
 @keyframes spin{100%{transform:rotate(360deg);}}
 .tab-btn.active{border-bottom:3px solid #6E1423;color:#6E1423;font-weight:700;}
 .chat-thread.active{background:#FBF6EE;border-left:4px solid #6E1423;}
+.order-filter-btn{background:white;color:#6E1423;}
+.order-filter-btn.active{background:#6E1423;color:white;}
+.status-pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:.03em;}
 </style>
 </head>
 
@@ -97,11 +100,15 @@ body{background:#FBF6EE;}
 
   <!-- TABS -->
   <div class="bg-white border-b border-gold/20 sticky top-[72px] z-20">
-    <div class="max-w-6xl mx-auto px-5 flex gap-8">
-      <button id="tab-products-btn" onclick="switchTab('products')" class="tab-btn active py-4 text-sm">
+    <div class="max-w-6xl mx-auto px-5 flex gap-8 overflow-x-auto">
+      <button id="tab-products-btn" onclick="switchTab('products')" class="tab-btn active py-4 text-sm whitespace-nowrap">
         <i class="fa-solid fa-boxes-stacked mr-1"></i> Products
       </button>
-      <button id="tab-chats-btn" onclick="switchTab('chats')" class="tab-btn py-4 text-sm relative">
+      <button id="tab-orders-btn" onclick="switchTab('orders')" class="tab-btn py-4 text-sm relative whitespace-nowrap">
+        <i class="fa-solid fa-receipt mr-1"></i> Orders
+        <span id="orders-unread-badge" class="hidden absolute -top-1 -right-4 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+      </button>
+      <button id="tab-chats-btn" onclick="switchTab('chats')" class="tab-btn py-4 text-sm relative whitespace-nowrap">
         <i class="fa-solid fa-comment-dots mr-1"></i> Customer Chats
         <span id="chats-unread-badge" class="hidden absolute -top-1 -right-4 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
       </button>
@@ -203,6 +210,30 @@ body{background:#FBF6EE;}
 
   </div>
 
+  <!-- ===================== ORDERS TAB ===================== -->
+  <div id="tab-orders" class="max-w-6xl mx-auto px-5 py-8 hidden">
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+      <div>
+        <h2 class="serif text-2xl font-bold">Customer Orders</h2>
+        <span id="order-count" class="text-sm text-gray-500"></span>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="setOrderFilter('all')" id="order-filter-all" class="order-filter-btn active px-4 py-2 rounded-lg text-sm font-semibold border border-burgundy">All</button>
+        <button onclick="setOrderFilter('pending_verification')" id="order-filter-pending_verification" class="order-filter-btn px-4 py-2 rounded-lg text-sm font-semibold border border-burgundy">Awaiting Payment Check</button>
+        <button onclick="setOrderFilter('paid')" id="order-filter-paid" class="order-filter-btn px-4 py-2 rounded-lg text-sm font-semibold border border-burgundy">Paid</button>
+        <button onclick="setOrderFilter('unfulfilled')" id="order-filter-unfulfilled" class="order-filter-btn px-4 py-2 rounded-lg text-sm font-semibold border border-burgundy">Unfulfilled</button>
+      </div>
+    </div>
+
+    <div id="orders-loading" class="text-center py-10">
+      <div class="spinner mx-auto"></div>
+      <p class="text-gray-500 mt-3 text-sm">Loading orders...</p>
+    </div>
+
+    <div id="orders-list" class="space-y-4"></div>
+    <p id="no-orders" class="hidden text-center text-gray-500 py-10">No orders yet.</p>
+  </div>
+
   <!-- ===================== CUSTOMER CHATS TAB ===================== -->
   <div id="tab-chats" class="max-w-6xl mx-auto px-5 py-8 hidden">
     <h2 class="serif text-2xl font-bold mb-6">Customer Chats</h2>
@@ -267,7 +298,7 @@ body{background:#FBF6EE;}
 // ============================================================
 // ⚠️ SET YOUR ADMIN PASSWORD HERE
 // ============================================================
-const ADMIN_PASSWORD = "RebeccaAdmin2026";
+const ADMIN_PASSWORD = "RebeccaAdmin2026"; 
 
 // ============================================================
 // ⚠️ CLOUDINARY CONFIG
@@ -302,6 +333,7 @@ function showDashboard(){
   document.getElementById('admin-dashboard').classList.remove('hidden');
   loadProducts();
   initChatsListener();
+  initOrdersListener();
 }
 
 // Check session on load
@@ -339,8 +371,10 @@ function showToast(text, isError){
 // ============================================================
 function switchTab(tab){
   document.getElementById('tab-products').classList.toggle('hidden', tab !== 'products');
+  document.getElementById('tab-orders').classList.toggle('hidden', tab !== 'orders');
   document.getElementById('tab-chats').classList.toggle('hidden', tab !== 'chats');
   document.getElementById('tab-products-btn').classList.toggle('active', tab === 'products');
+  document.getElementById('tab-orders-btn').classList.toggle('active', tab === 'orders');
   document.getElementById('tab-chats-btn').classList.toggle('active', tab === 'chats');
 }
 
@@ -537,6 +571,175 @@ async function confirmDelete(){
     console.error(err);
     showToast('Error deleting product: ' + err.message, true);
     closeConfirm();
+  }
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+let allOrders = {};          // orderId -> order data
+let currentOrderFilter = 'all';
+let knownOrderKeys = new Set();
+let isFirstOrdersLoad = true;
+
+function initOrdersListener(){
+  const { db, collection, onSnapshot, query, orderBy } = window._firebase;
+
+  try {
+    const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+      const newOrders = {};
+      let hasNewIncoming = false;
+
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        newOrders[docSnap.id] = data;
+        const key = docSnap.id + '_' + (data.paymentStatus || '') + '_' + (data.fulfillmentStatus || '');
+        if(!isFirstOrdersLoad && !knownOrderKeys.has(key)){
+          // Either a brand new order, or a status changed elsewhere — only
+          // chime for genuinely new order docs, not our own edits.
+          if(!Object.keys(allOrders).includes(docSnap.id)) hasNewIncoming = true;
+        }
+        knownOrderKeys.add(key);
+      });
+
+      allOrders = newOrders;
+      document.getElementById('orders-loading').classList.add('hidden');
+      renderOrdersList();
+      updateOrdersBadge();
+
+      if(hasNewIncoming){
+        playNotificationSound();
+      }
+      isFirstOrdersLoad = false;
+    }, (err) => {
+      console.error(err);
+      document.getElementById('orders-loading').classList.add('hidden');
+      document.getElementById('orders-list').innerHTML = `<p class="text-red-500 text-sm p-4">Could not load orders.</p>`;
+    });
+  } catch(err){
+    console.error(err);
+  }
+}
+
+function setOrderFilter(filter){
+  currentOrderFilter = filter;
+  document.querySelectorAll('.order-filter-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('order-filter-' + filter).classList.add('active');
+  renderOrdersList();
+}
+
+function orderMatchesFilter(order){
+  if(currentOrderFilter === 'all') return true;
+  if(currentOrderFilter === 'pending_verification') return (order.paymentStatus || 'pending_verification') === 'pending_verification';
+  if(currentOrderFilter === 'paid') return order.paymentStatus === 'paid';
+  if(currentOrderFilter === 'unfulfilled') return (order.fulfillmentStatus || 'pending') !== 'fulfilled';
+  return true;
+}
+
+function formatOrderDate(ts){
+  if(!ts || !ts.toDate) return '—';
+  const d = ts.toDate();
+  return d.toLocaleString('en-NG', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function paymentBadge(status){
+  if(status === 'paid') return `<span class="status-pill bg-green-100 text-green-700">Paid</span>`;
+  return `<span class="status-pill bg-yellow-100 text-yellow-700">Pending Verification</span>`;
+}
+function fulfillmentBadge(status){
+  if(status === 'fulfilled') return `<span class="status-pill bg-blue-100 text-blue-700">Fulfilled</span>`;
+  return `<span class="status-pill bg-gray-200 text-gray-600">Not Fulfilled</span>`;
+}
+
+function renderOrdersList(){
+  const listEl = document.getElementById('orders-list');
+  const noOrdersEl = document.getElementById('no-orders');
+  const ids = Object.keys(allOrders).filter(id => orderMatchesFilter(allOrders[id]));
+
+  document.getElementById('order-count').textContent =
+    `${ids.length} order${ids.length !== 1 ? 's' : ''}${currentOrderFilter !== 'all' ? ' (filtered)' : ''}`;
+
+  if(ids.length === 0){
+    listEl.innerHTML = '';
+    noOrdersEl.classList.remove('hidden');
+    return;
+  }
+  noOrdersEl.classList.add('hidden');
+
+  listEl.innerHTML = ids.map(id => {
+    const o = allOrders[id];
+    const paymentStatus = o.paymentStatus || 'pending_verification';
+    const fulfillmentStatus = o.fulfillmentStatus || 'pending';
+    const items = o.items || [];
+
+    const itemsHTML = items.map(it => `
+      <div class="flex justify-between text-sm py-1">
+        <span>${it.name} <span class="text-gray-400">x${it.qty}</span></span>
+        <span class="font-medium">₦${Number(it.price * it.qty).toLocaleString()}</span>
+      </div>
+    `).join('');
+
+    return `
+      <div class="bg-white rounded-xl shadow border border-gold/20 p-5">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3">
+          <div>
+            <p class="font-bold">Ref: ${o.paystackRef || '—'}</p>
+            <p class="text-sm text-gray-500">${o.customerEmail || 'No email'}</p>
+            <p class="text-xs text-gray-400 mt-1">${formatOrderDate(o.createdAt)}</p>
+          </div>
+          <div class="flex gap-2 flex-wrap sm:justify-end">
+            ${paymentBadge(paymentStatus)}
+            ${fulfillmentBadge(fulfillmentStatus)}
+          </div>
+        </div>
+
+        <div class="border-t border-b border-gold/10 py-3 my-2">
+          ${itemsHTML || '<p class="text-sm text-gray-400">No item details.</p>'}
+        </div>
+
+        <div class="flex justify-between items-center mb-4">
+          <span class="text-sm text-gray-500">Total</span>
+          <span class="text-burgundy font-bold text-xl">₦${Number(o.totalAmount || 0).toLocaleString()}</span>
+        </div>
+
+        <div class="flex gap-3 flex-wrap">
+          ${paymentStatus === 'paid'
+            ? `<button onclick="updateOrderField('${id}','paymentStatus','pending_verification')" class="flex-1 min-w-[140px] border border-gold/40 text-charcoal py-2.5 rounded-lg text-sm font-semibold hover:bg-gold/10">Mark as Pending</button>`
+            : `<button onclick="updateOrderField('${id}','paymentStatus','paid')" class="flex-1 min-w-[140px] bg-green-600 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-green-700">Mark as Paid</button>`
+          }
+          ${fulfillmentStatus === 'fulfilled'
+            ? `<button onclick="updateOrderField('${id}','fulfillmentStatus','pending')" class="flex-1 min-w-[140px] border border-gold/40 text-charcoal py-2.5 rounded-lg text-sm font-semibold hover:bg-gold/10">Mark as Unfulfilled</button>`
+            : `<button onclick="updateOrderField('${id}','fulfillmentStatus','fulfilled')" class="flex-1 min-w-[140px] bg-burgundy text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-black">Mark as Fulfilled</button>`
+          }
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function updateOrderField(orderId, field, value){
+  const { db, doc, updateDoc } = window._firebase;
+  try {
+    await updateDoc(doc(db, 'orders', orderId), { [field]: value });
+    showToast('Order updated.');
+  } catch(err){
+    console.error(err);
+    showToast('Error updating order: ' + err.message, true);
+  }
+}
+
+function updateOrdersBadge(){
+  const count = Object.values(allOrders).filter(o =>
+    (o.paymentStatus || 'pending_verification') === 'pending_verification' ||
+    (o.fulfillmentStatus || 'pending') !== 'fulfilled'
+  ).length;
+  const badge = document.getElementById('orders-unread-badge');
+  if(count > 0){
+    badge.textContent = count;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
   }
 }
 
