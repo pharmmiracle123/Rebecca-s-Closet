@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmed | Rebecca's Closet</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
+    authDomain: "pts-bscht.firebaseapp.com",
+    databaseURL: "https://pts-bscht-default-rtdb.firebaseio.com",
+    projectId: "pts-bscht",
+    storageBucket: "pts-bscht.firebasestorage.app",
+    messagingSenderId: "860500545291",
+    appId: "1:860500545291:web:60df69992bcaddcb0bdc0e",
+    measurementId: "G-B9NTEZYFMM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._firebase = { db, collection, addDoc, serverTimestamp };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      colors:{ burgundy:"#6E1423", gold:"#C9A24B", cream:"#FBF6EE", charcoal:"#1E1B18" },
+      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'] }
+    }
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box;font-family:'Jost',sans-serif;}
+.serif{font-family:'Playfair Display',serif;}
+body{background:#FBF6EE;}
+.spinner{border:3px solid #eee;border-top:3px solid #6E1423;border-radius:50%;width:36px;height:36px;animation:spin .8s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center px-5">
+
+<div class="bg-white rounded-2xl shadow-xl border border-gold/30 p-8 max-w-md w-full text-center">
+
+  <div id="state-loading">
+    <div class="spinner mx-auto mb-5"></div>
+    <p class="text-gray-500">Confirming your order...</p>
+  </div>
+
+  <div id="state-success" class="hidden">
+    <div class="w-16 h-16 mx-auto mb-5 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-3xl">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h1 class="serif text-2xl font-bold mb-2">Payment Successful!</h1>
+    <p class="text-gray-600 mb-1">Thank you for shopping with Rebecca's Closet.</p>
+    <p class="text-sm text-gray-400 mb-5">Reference: <span id="ref-text" class="font-mono"></span></p>
+
+    <div id="order-summary" class="text-left bg-gold/5 rounded-xl p-4 mb-6 text-sm"></div>
+
+    <p class="text-sm text-gray-500 mb-6">A confirmation has been recorded. Please bring your payment reference if picking up in person, or wait for our call regarding delivery.</p>
+
+    <a href="index.html" class="inline-block w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition">
+      Continue Shopping
+    </a>
+  </div>
+
+  <div id="state-noref" class="hidden">
+    <div class="w-16 h-16 mx-auto mb-5 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-3xl">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+    <h1 class="serif text-2xl font-bold mb-2">No Payment Detected</h1>
+    <p class="text-gray-600 mb-6">We couldn't find a payment reference on this page. If you completed a payment, please contact us with your reference number.</p>
+    <a href="index.html" class="inline-block w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition">
+      Back to Home
+    </a>
+  </div>
+
+</div>
+
+<script>
+function formatNaira(num){ return '₦' + Number(num).toLocaleString('en-NG'); }
+
+function getParam(name){
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+window.addEventListener('firebase-ready', async () => {
+  // Paystack appends either ?reference=xxx or ?trxref=xxx&reference=xxx
+  const reference = getParam('reference') || getParam('trxref');
+
+  const loadingEl = document.getElementById('state-loading');
+  const successEl = document.getElementById('state-success');
+  const noRefEl = document.getElementById('state-noref');
+
+  if(!reference){
+    loadingEl.classList.add('hidden');
+    noRefEl.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('ref-text').textContent = reference;
+
+  // Pull the order details stashed in localStorage right before checkout
+  const pendingRaw = localStorage.getItem('rc_pending_order');
+  const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+
+  // Only save if this reference hasn't already been recorded
+  // (avoids duplicate order if the popup's own callback already ran)
+  const alreadySaved = localStorage.getItem('rc_last_saved_ref') === reference;
+
+  if(pending && !alreadySaved){
+    try {
+      const { db, collection, addDoc, serverTimestamp } = window._firebase;
+      await addDoc(collection(db, 'orders'), {
+        items: pending.items,
+        customerEmail: pending.customerEmail,
+        totalAmount: pending.totalAmount,
+        paystackRef: reference,
+        paymentStatus: 'pending_verification',
+        fulfillmentStatus: 'pending',
+        createdAt: serverTimestamp()
+      });
+      localStorage.setItem('rc_last_saved_ref', reference);
+    } catch(err){
+      console.error('Could not save order:', err);
+    }
+  }
+
+  // Show order summary if we have it
+  if(pending){
+    const itemsHTML = pending.items.map(i =>
+      `<div class="flex justify-between py-1"><span>${i.name} x${i.qty}</span><span>${formatNaira(i.price * i.qty)}</span></div>`
+    ).join('');
+    document.getElementById('order-summary').innerHTML = `
+      ${itemsHTML}
+      <div class="flex justify-between font-bold pt-2 mt-2 border-t border-gold/20">
+        <span>Total</span><span>${formatNaira(pending.totalAmount)}</span>
+      </div>
+    `;
+  } else {
+    document.getElementById('order-summary').innerHTML = `<p class="text-gray-500">Order details unavailable, but your reference has been recorded.</p>`;
+  }
+
+  // Clear cart and pending order now that checkout is complete
+  localStorage.removeItem('rc_cart');
+  localStorage.removeItem('rc_pending_order');
+
+  loadingEl.classList.add('hidden');
+  successEl.classList.remove('hidden');
+});
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Confirmed | Rebecca's Closet</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBzuQuY_9BSGrhQmN2zuH7bgS8nUOBZRnA",
+    authDomain: "pts-bscht.firebaseapp.com",
+    databaseURL: "https://pts-bscht-default-rtdb.firebaseio.com",
+    projectId: "pts-bscht",
+    storageBucket: "pts-bscht.firebasestorage.app",
+    messagingSenderId: "860500545291",
+    appId: "1:860500545291:web:60df69992bcaddcb0bdc0e",
+    measurementId: "G-B9NTEZYFMM"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  window._firebase = { db, collection, addDoc, serverTimestamp };
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<script>
+tailwind.config={
+  theme:{
+    extend:{
+      colors:{ burgundy:"#6E1423", gold:"#C9A24B", cream:"#FBF6EE", charcoal:"#1E1B18" },
+      fontFamily:{ serif:['"Playfair Display"','serif'], sans:['Jost','sans-serif'] }
+    }
+  }
+}
+</script>
+
+<style>
+*{box-sizing:border-box;font-family:'Jost',sans-serif;}
+.serif{font-family:'Playfair Display',serif;}
+body{background:#FBF6EE;}
+.spinner{border:3px solid #eee;border-top:3px solid #6E1423;border-radius:50%;width:36px;height:36px;animation:spin .8s linear infinite;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+</style>
+</head>
+
+<body class="min-h-screen flex items-center justify-center px-5">
+
+<div class="bg-white rounded-2xl shadow-xl border border-gold/30 p-8 max-w-md w-full text-center">
+
+  <div id="state-loading">
+    <div class="spinner mx-auto mb-5"></div>
+    <p class="text-gray-500">Confirming your order...</p>
+  </div>
+
+  <div id="state-success" class="hidden">
+    <div class="w-16 h-16 mx-auto mb-5 rounded-full bg-green-100 flex items-center justify-center text-green-600 text-3xl">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h1 class="serif text-2xl font-bold mb-2">Payment Successful!</h1>
+    <p class="text-gray-600 mb-1">Thank you for shopping with Rebecca's Closet.</p>
+    <p class="text-sm text-gray-400 mb-5">Reference: <span id="ref-text" class="font-mono"></span></p>
+
+    <div id="order-summary" class="text-left bg-gold/5 rounded-xl p-4 mb-6 text-sm"></div>
+
+    <p class="text-sm text-gray-500 mb-6">A confirmation has been recorded. Please bring your payment reference if picking up in person, or wait for our call regarding delivery.</p>
+
+    <a href="index.html" class="inline-block w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition">
+      Continue Shopping
+    </a>
+  </div>
+
+  <div id="state-noref" class="hidden">
+    <div class="w-16 h-16 mx-auto mb-5 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 text-3xl">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+    <h1 class="serif text-2xl font-bold mb-2">No Payment Detected</h1>
+    <p class="text-gray-600 mb-6">We couldn't find a payment reference on this page. If you completed a payment, please contact us with your reference number.</p>
+    <a href="index.html" class="inline-block w-full bg-burgundy text-white py-4 rounded-lg font-bold hover:bg-black transition">
+      Back to Home
+    </a>
+  </div>
+
+</div>
+
+<script>
+function formatNaira(num){ return '₦' + Number(num).toLocaleString('en-NG'); }
+
+function getParam(name){
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+window.addEventListener('firebase-ready', async () => {
+  // Paystack appends either ?reference=xxx or ?trxref=xxx&reference=xxx
+  const reference = getParam('reference') || getParam('trxref');
+
+  const loadingEl = document.getElementById('state-loading');
+  const successEl = document.getElementById('state-success');
+  const noRefEl = document.getElementById('state-noref');
+
+  if(!reference){
+    loadingEl.classList.add('hidden');
+    noRefEl.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('ref-text').textContent = reference;
+
+  // Pull the order details stashed in localStorage right before checkout
+  const pendingRaw = localStorage.getItem('rc_pending_order');
+  const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+
+  // Only save if this reference hasn't already been recorded
+  // (avoids duplicate order if the popup's own callback already ran)
+  const alreadySaved = localStorage.getItem('rc_last_saved_ref') === reference;
+
+  if(pending && !alreadySaved){
+    try {
+      const { db, collection, addDoc, serverTimestamp } = window._firebase;
+      await addDoc(collection(db, 'orders'), {
+        items: pending.items,
+        customerEmail: pending.customerEmail,
+        totalAmount: pending.totalAmount,
+        paystackRef: reference,
+        paymentStatus: 'pending_verification',
+        fulfillmentStatus: 'pending',
+        createdAt: serverTimestamp()
+      });
+      localStorage.setItem('rc_last_saved_ref', reference);
+    } catch(err){
+      console.error('Could not save order:', err);
+    }
+  }
+
+  // Show order summary if we have it
+  if(pending){
+    const itemsHTML = pending.items.map(i =>
+      `<div class="flex justify-between py-1"><span>${i.name} x${i.qty}</span><span>${formatNaira(i.price * i.qty)}</span></div>`
+    ).join('');
+    document.getElementById('order-summary').innerHTML = `
+      ${itemsHTML}
+      <div class="flex justify-between font-bold pt-2 mt-2 border-t border-gold/20">
+        <span>Total</span><span>${formatNaira(pending.totalAmount)}</span>
+      </div>
+    `;
+  } else {
+    document.getElementById('order-summary').innerHTML = `<p class="text-gray-500">Order details unavailable, but your reference has been recorded.</p>`;
+  }
+
+  // Clear cart and pending order now that checkout is complete
+  localStorage.removeItem('rc_cart');
+  localStorage.removeItem('rc_pending_order');
+
+  loadingEl.classList.add('hidden');
+  successEl.classList.remove('hidden');
+});
+</script>
+
+</body>
+</html>
